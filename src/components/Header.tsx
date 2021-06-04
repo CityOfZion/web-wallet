@@ -1,5 +1,5 @@
 import * as React from "react";
-import {Flex, Image, Link, Spacer, Text} from "@chakra-ui/react";
+import {Flex, Image, Link, Text} from "@chakra-ui/react";
 import {useWalletConnect} from "../context/WalletConnectContext";
 import LogoutIcon from "./icon/LogoutIcon";
 import {FileHelper} from "../helpers/FileHelper";
