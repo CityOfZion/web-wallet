@@ -1,5 +1,5 @@
 import * as React from "react";
-import {Box, Button, DividerProps, Flex, Image, Input, Spacer, Text} from "@chakra-ui/react";
+import {Box, Button, DividerProps, Flex, Image, Input, Spacer, Spinner, Text, useToast} from "@chakra-ui/react";
 import {useWalletConnect} from "../context/WalletConnectContext";
 import {FileHelper} from "../helpers/FileHelper";
 import {wallet} from "@cityofzion/neon-js";
@@ -11,13 +11,17 @@ import {useAccountContext} from "../context/AccountContext";
 export default function AccountEntry(props: DividerProps) {
     const walletConnectCtx = useWalletConnect()
     const accountCtx = useAccountContext()
+    const toast = useToast()
     const [creatingNew, setCreatingNew] = useState(false)
+    const [loading, setLoading] = useState(false)
 
     const loadAccountFromStorage = useCallback(async (storage: KeyValueStorage) => {
-        const json = await storage.getItem<Partial<AccountJSON>>("account")
-        if (json) {
-            const account = new wallet.Account(json)
-            walletConnectCtx.setAccounts([account])
+        if (!walletConnectCtx.accounts.length) {
+            const json = await storage.getItem<Partial<AccountJSON>>("account")
+            if (json) {
+                const account = new wallet.Account(json)
+                walletConnectCtx.setAccounts([account])
+            }
         }
     }, [walletConnectCtx])
 
@@ -29,14 +33,26 @@ export default function AccountEntry(props: DividerProps) {
 
     const login = async (e: React.SyntheticEvent) => {
         e.preventDefault()
+        setLoading(true)
         await passwordOnAccount()
         await walletConnectCtx.initClient()
+        setLoading(false)
     }
 
     const passwordOnAccount = async () => {
         if (walletConnectCtx.accounts.length && accountCtx.accountPassword && walletConnectCtx.storage) {
             const acc = walletConnectCtx.accounts[0]
-            await acc.decrypt(accountCtx.accountPassword)
+            try {
+                await acc.decrypt(accountCtx.accountPassword)
+            } catch (e) {
+                toast({
+                    title: e.message,
+                    status: "error",
+                    duration: 3000,
+                    isClosable: true,
+                })
+                return
+            }
             walletConnectCtx.setAccounts([acc])
             accountCtx.setAccountDecripted(true)
 
@@ -68,7 +84,8 @@ export default function AccountEntry(props: DividerProps) {
     return (
         <Flex direction="column" align="center" {...props}>
             <Spacer/>
-            {!walletConnectCtx.accounts.length ? (<>
+            {loading ? <Spinner alignSelf="center" />
+            : !walletConnectCtx.accounts.length ? (<>
                 <Text fontSize="0.875rem" color="#888888">Do you have an Account JSON File?</Text>
                 <Flex h="2.75rem" mt="1.5rem">
                     <Button onClick={importAccount} h="100%" bg="#373d4a" borderRadius={0} _hover={{bg: 'black'}}>

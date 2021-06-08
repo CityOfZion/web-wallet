@@ -1,74 +1,17 @@
 import * as React from "react";
-import styled from "styled-components";
-import { AppMetadata } from "@walletconnect/types";
-import { colors, fonts } from "../styles";
+import {AppMetadata} from "@walletconnect/types";
+import {Flex, Image, Text, Link, Spacer, DividerProps} from "@chakra-ui/react";
 
-const SPeerOneLiner = styled.div`
-  display: flex;
-  align-items: center;
-  border-radius: 8px;
-  border: 2px solid rgb(${colors.darkGrey});
-  padding: 5px;
-
-  & img {
-    width: 40px;
-    height: 40px;
-  }
-  & > div {
-    margin-left: 10px;
-  }
-`;
-
-const SPeerCard = styled.div`
-  align-items: center;
-  justify-content: center;
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  border-radius: 8px;
-  border: 2px solid rgb(${colors.darkGrey});
-  padding: 5px;
-  & > div {
-    margin: 4px auto;
-  }
-`;
-
-const SIcon = styled.img`
-  width: 100px;
-  margin: 0 auto;
-`;
-
-const SCenter = styled.div`
-  text-align: center;
-`;
-
-const SUrl = styled(SCenter as any)`
-  font-size: ${fonts.size.small};
-  opacity: 0.8;
-`;
-
-const SName = styled(SCenter as any)`
-  font-weight: bold;
-`;
-
-interface PeerProps {
-  oneLiner?: boolean;
-  metadata: AppMetadata;
+export default function Peer(props: { metadata: AppMetadata } & DividerProps) {
+  return (
+    <Flex h="5rem" {...props}>
+      <Image w="5rem" src={props.metadata.icons[0]} alt={props.metadata.name} />
+      <Flex direction="column" ml="1rem" h="100%">
+        <Text fontSize="1.5rem">{props.metadata.name}</Text>
+        <Text fontSize="0.875rem" color="#888888">{props.metadata.description}</Text>
+        <Spacer/>
+        <Link href={props.metadata.url} target="_blank" fontSize="0.875rem" color="#888888">{props.metadata.url}</Link>
+      </Flex>
+    </Flex>
+  )
 }
-
-const Peer = (props: PeerProps) =>
-  props.oneLiner ? (
-    <SPeerOneLiner>
-      <img src={props.metadata.icons[0]} alt={props.metadata.name} />
-      <div>{props.metadata.name}</div>
-    </SPeerOneLiner>
-  ) : (
-    <SPeerCard>
-      <SIcon src={props.metadata.icons[0]} alt={props.metadata.name} />
-      <SName>{props.metadata.name}</SName>
-      <SCenter>{props.metadata.description}</SCenter>
-      <SUrl>{props.metadata.url}</SUrl>
-    </SPeerCard>
-  );
-
-export default Peer;

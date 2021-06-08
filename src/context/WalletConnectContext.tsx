@@ -16,7 +16,6 @@ import {Account} from "@cityofzion/neon-core/lib/wallet/Account";
 import KeyValueStorage from "keyvaluestorage";
 import {formatJsonRpcError, JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
 import {ScannerValidation} from "../components/Scanner";
-import {Step} from "../helpers";
 
 interface IWalletConnectContext {
     wcClient: Client | undefined,
@@ -25,6 +24,8 @@ interface IWalletConnectContext {
     setStorage: React.Dispatch<React.SetStateAction<KeyValueStorage | undefined>>,
     neonHelper: N3Helper | undefined,
     setNeonHelper: React.Dispatch<React.SetStateAction<N3Helper | undefined>>,
+    sessionProposals: SessionTypes.Proposal[],
+    setSessionProposals: React.Dispatch<React.SetStateAction<SessionTypes.Proposal[]>>,
     loading: boolean,
     setLoading: React.Dispatch<React.SetStateAction<boolean>>,
     scanner: boolean,
@@ -39,8 +40,6 @@ interface IWalletConnectContext {
     setRequests: React.Dispatch<React.SetStateAction<SessionTypes.RequestEvent[]>>,
     results: any[],
     setResults: React.Dispatch<React.SetStateAction<any[]>>,
-    step: Step.All,
-    setStep: React.Dispatch<React.SetStateAction<Step.All>>,
 
     initClient: () => Promise<void>,
     resetApp: () => Promise<void>,
@@ -55,9 +54,7 @@ interface IWalletConnectContext {
     onScannerScan: (data: any) => Promise<void>,
     onScannerError: (error: Error) => void,
     onURI: (data: any) => Promise<void>,
-    resetStep: () => void,
-    openSession: (session: SessionTypes.Created) => void
-    openRequest: (requestEvent: SessionTypes.RequestEvent) => Promise<void>,
+    getPeerOfRequest: (requestEvent: SessionTypes.RequestEvent) => Promise<SessionTypes.Peer>,
     approveSession: (proposal: SessionTypes.Proposal) => Promise<void>,
     accountsAsString: (accounts: Account[]) => string[],
     rejectSession: (proposal: SessionTypes.Proposal) => Promise<void>,
@@ -70,12 +67,11 @@ interface IWalletConnectContext {
 
 export const WalletConnectContext = React.createContext({} as IWalletConnectContext)
 
-const initialStep: Step.Default = {type: "default", data: {}}
-
 export const WalletConnectContextProvider: React.FC = ({ children }) => {
     const [wcClient, setWcClient] = useState<Client | undefined>(undefined)
     const [storage, setStorage] = useState<KeyValueStorage | undefined>(undefined)
     const [neonHelper, setNeonHelper] = useState<N3Helper | undefined>(undefined)
+    const [sessionProposals, setSessionProposals] = useState<SessionTypes.Proposal[]>([])
     const [loading, setLoading] = useState<boolean>(false)
     const [scanner, setScanner] = useState<boolean>(false)
     const [chains, setChains] = useState<string[]>([DEFAULT_CHAIN_ID])
@@ -83,7 +79,6 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
     const [sessions, setSessions] = useState<SessionTypes.Created[]>([])
     const [requests, setRequests] = useState<SessionTypes.RequestEvent[]>([])
     const [results, setResults] = useState<any[]>([])
-    const [step, setStep] = useState<Step.All>(initialStep)
 
     useEffect(() => {
         init()
@@ -128,7 +123,6 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
         setSessions([])
         setRequests([])
         setResults([])
-        setStep(initialStep)
         await init()
     }
 
@@ -194,7 +188,7 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
             if (unsupportedMethods.length) {
                 return wcClient.reject({proposal});
             }
-            openProposal(proposal);
+            setSessionProposals((old) => [...old, proposal]);
         });
 
         wcClient.on(
@@ -205,7 +199,7 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
                 try {
                     const alreadyApproved = await checkApprovedRequest(requestEvent.request);
                     if (!alreadyApproved) {
-                        setRequests([...requests, requestEvent])
+                        setRequests((old) => [...old, requestEvent])
                     } else {
                         const response = await makeRequest(requestEvent.request)
                         await respondRequest(requestEvent.topic, response);
@@ -232,7 +226,7 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
             console.log("EVENT", "session_deleted");
             setSessions(wcClient.session.values)
         });
-    }, [chains, checkApprovedRequest, makeRequest, requests, respondRequest, wcClient]);
+    }, [chains, checkApprovedRequest, makeRequest, respondRequest, wcClient]);
 
     const openScanner = () => {
         console.log("ACTION", "openScanner");
@@ -273,20 +267,12 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
         await wcClient.pair({uri});
     };
 
-    const resetStep = () => setStep(initialStep)
-
-    const openProposal = (proposal: SessionTypes.Proposal) =>
-        setStep({type: "proposal", data: {proposal}});
-
-    const openSession = (session: SessionTypes.Created) =>
-        setStep({type: "session", data: {session}});
-
-    const openRequest = async (requestEvent: SessionTypes.RequestEvent) => {
+    const getPeerOfRequest = async (requestEvent: SessionTypes.RequestEvent) => {
         if (typeof wcClient === "undefined") {
             throw new Error("Client is not initialized");
         }
         const {peer} = await wcClient.session.get(requestEvent.topic);
-        setStep({type: "request", data: {requestEvent, peer}});
+        return peer
     };
 
     const approveSession = async (proposal: SessionTypes.Proposal) => {
@@ -306,7 +292,7 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
             metadata: getAppMetadata() || DEFAULT_APP_METADATA,
         };
         const session = await wcClient.approve({proposal, response});
-        resetStep();
+        setSessionProposals((old) => old.filter(i => i !== proposal))
         setSessions([session]);
     };
 
@@ -322,7 +308,7 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
             throw new Error("Client is not initialized");
         }
         await wcClient.reject({proposal});
-        resetStep()
+        setSessionProposals((old) => old.filter(i => i !== proposal))
     };
 
     const disconnect = async (topic: string) => {
@@ -334,7 +320,6 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
             topic,
             reason: getError(ERROR.USER_DISCONNECTED),
         });
-        resetStep()
     };
 
     const removeFromPending = async (requestEvent: SessionTypes.RequestEvent) => {
@@ -360,7 +345,6 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
         }
 
         await removeFromPending(requestEvent);
-        await resetStep()
     };
 
     const rejectRequest = async (requestEvent: SessionTypes.RequestEvent) => {
@@ -372,7 +356,6 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
             response: formatJsonRpcError(requestEvent.request.id, "Failed or Rejected Request"),
         });
         await removeFromPending(requestEvent);
-        await resetStep()
     };
 
     const contextValue: IWalletConnectContext = {
@@ -382,6 +365,8 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
         setStorage,
         neonHelper,
         setNeonHelper,
+        sessionProposals,
+        setSessionProposals,
         loading,
         setLoading,
         scanner,
@@ -396,8 +381,6 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
         setRequests,
         results,
         setResults,
-        step,
-        setStep,
 
         initClient,
         resetApp,
@@ -412,9 +395,7 @@ export const WalletConnectContextProvider: React.FC = ({ children }) => {
         onScannerScan,
         onScannerError,
         onURI,
-        resetStep,
-        openSession,
-        openRequest,
+        getPeerOfRequest,
         approveSession,
         accountsAsString,
         rejectSession,
