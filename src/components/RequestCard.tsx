@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import Peer from "../components/Peer";
-import {Button, DividerProps, Flex, Image, Spacer, Text, Box} from "@chakra-ui/react";
+import {Button, DividerProps, Flex, Image, Spacer, Text, Box, Spinner} from "@chakra-ui/react";
 import {useWalletConnect} from "../context/WalletConnectContext";
 import {SessionTypes} from "@walletconnect/types";
 import {useEffect, useState} from "react";
@@ -9,6 +9,7 @@ import {useEffect, useState} from "react";
 export default function RequestCard(props: DividerProps & {requestEvent: SessionTypes.RequestEvent, closeRequest: () => void}) {
   const walletConnectCtx = useWalletConnect()
   const [peer, setPeer] = useState<SessionTypes.Peer | undefined>(undefined)
+  const [sendingResponse, setSendingResponse] = useState(false)
 
   const request = props.requestEvent.request
 
@@ -17,12 +18,16 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
   }, [props.requestEvent, walletConnectCtx])
 
   const approve = async () => {
+    setSendingResponse(true)
     await walletConnectCtx.approveRequest(props.requestEvent)
+    setSendingResponse(false)
     props.closeRequest()
   }
 
   const reject = async () => {
+    setSendingResponse(true)
     await walletConnectCtx.rejectRequest(props.requestEvent)
+    setSendingResponse(false)
     props.closeRequest()
   }
 
@@ -67,6 +72,7 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
             </>)
           )}
         </Flex>
+        {sendingResponse ? <Spinner alignSelf="center" /> : (
         <Flex mt="0.75rem" position="sticky" bottom={0}>
           <Button flex={1} onClick={approve}
                   bg="black" borderRadius={0} _hover={{bg: '#111'}}>
@@ -77,6 +83,7 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
             Reject
           </Button>
         </Flex>
+        )}
       </Flex>
       <Spacer/>
     </Flex>

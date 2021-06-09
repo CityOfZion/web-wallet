@@ -4,7 +4,7 @@ import DefaultCard from "./components/DefaultCard";
 import RequestCard from "./components/RequestCard";
 import ProposalCard from "./components/ProposalCard";
 import {useWalletConnect} from "./context/WalletConnectContext";
-import {CloseButton, Flex} from "@chakra-ui/react";
+import {CloseButton, Flex, Spacer, Spinner, toast, useToast} from "@chakra-ui/react";
 import Header from "./components/Header";
 import {useAccountContext} from "./context/AccountContext";
 import AccountEntry from "./components/AccountEntry";
@@ -14,6 +14,7 @@ import {SessionTypes} from "@walletconnect/types";
 
 export default function App() {
   const walletConnectCtx = useWalletConnect()
+  const toast = useToast()
   const accountCtx = useAccountContext()
   const [connectingApp, setConnectingApp] = useState(false)
   const [requestOpen, setRequestOpen] = useState<SessionTypes.RequestEvent | undefined>(undefined)
@@ -28,6 +29,12 @@ export default function App() {
       {
         !walletConnectCtx.accounts.length || !accountCtx.accountDecripted ?
           <AccountEntry flex={1}/>
+        : !walletConnectCtx.initialized ?
+          <Flex flex={1} align="center">
+            <Spacer />
+            <Spinner />
+            <Spacer />
+          </Flex>
         : !!walletConnectCtx.sessionProposals.length ?
           <ProposalCard flex={1} />
         : requestOpen ?
@@ -37,16 +44,8 @@ export default function App() {
             <ConnectDapp flex={1}/>
             {!!walletConnectCtx.sessions.length && <CloseButton onClick={() => setConnectingApp(false)}/>}
           </Flex>
-        : <DefaultCard openRequest={setRequestOpen} openConnectingDapp={() => setConnectingApp(true)} />
+        : <DefaultCard openRequest={(e) => setRequestOpen(e)} openConnectingDapp={() => setConnectingApp(true)} />
       }
-      {walletConnectCtx.scanner && (
-        <Scanner
-          onValidate={walletConnectCtx.onScannerValidate}
-          onScan={walletConnectCtx.onScannerScan}
-          onError={walletConnectCtx.onScannerError}
-          onClose={walletConnectCtx.closeScanner}
-        />
-      )}
     </Flex>
   );
 }

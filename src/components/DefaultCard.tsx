@@ -32,20 +32,22 @@ export const MotionLink = motion(
 ) as ComponentWithAs<"a", MotionBoxProps>;
 
 export default function DefaultCard(props: DividerProps & {
-  openConnectingDapp: () => void,
-  openRequest: (request: SessionTypes.RequestEvent) => void
+  openConnectingDapp: () => any,
+  openRequest: (request: SessionTypes.RequestEvent) => any
 }) {
   const walletConnectCtx = useWalletConnect()
 
+  const {openConnectingDapp, openRequest, ...dividerProps} = props
+
   return (
-    <Flex direction="column" align="center" {...props}>
+    <Flex direction="column" align="center" {...dividerProps}>
       <Spacer/>
       <Button h="2.75rem" bg="#373d4a" borderRadius={0} mt="1.5rem"
-              _hover={{bg: 'black'}} onClick={props.openConnectingDapp}>Make a new Connection</Button>
+              _hover={{bg: 'black'}} onClick={openConnectingDapp}>Make a new Connection</Button>
       <Spacer/>
       <Text fontSize="0.875rem" fontWeight="bold" color="#888888" mt="4rem">{"Sessions"}</Text>
       {walletConnectCtx.sessions.map(session => (
-        <Flex direction="column" bg="#252b36" w="23rem" boxShadow="lg" p="0.5rem" my="0.5rem">
+        <Flex key={`s${session.topic}`} direction="column" bg="#252b36" w="23rem" boxShadow="lg" p="0.5rem" my="0.5rem">
           <Flex>
             <Peer key={session.topic} metadata={session.peer.metadata} flex={1}/>
             <Link onClick={() => walletConnectCtx.disconnect(session.topic)}><DeleteIcon color="#990000"/></Link>
@@ -53,13 +55,14 @@ export default function DefaultCard(props: DividerProps & {
           {walletConnectCtx.requests.map(requestEvent =>
             isJsonRpcRequest(requestEvent.request) && requestEvent.topic === session.topic && (
               <MotionLink
+                key={`r${requestEvent.topic}`}
                 bg="black" px="0.8rem" py="0.4rem" borderRadius="0.5rem" borderColor="#00000033" borderWidth="0.3rem"
                 bgClip="padding-box" cursor="pointer"
                 mx="0.5rem"
                 mt="1rem"
                 animate={{scale: [1, 1.07, 1]}}
                 transition={{repeat: Infinity, repeatType: "loop",}}
-                onClick={() => props.openRequest(requestEvent)}
+                onClick={() => openRequest(requestEvent)}
               >
                 <Text as="span" fontWeight="bold">Pending Request:</Text> {requestEvent.request.method}
               </MotionLink>

@@ -18,7 +18,7 @@ export default function ProposalCard(props: DividerProps) {
             <>
               <Text fontSize="0.875rem" color="#888888" fontWeight="bold">Chains</Text>
               {firstProposal.permissions.blockchain.chains.map(chainId => (
-                <Flex align="center" mt="0.5rem">
+                <Flex key={chainId} align="center" mt="0.5rem">
                   <Image w="1.875rem" src="https://cryptologos.cc/logos/neo-neo-logo.svg"/>
                   <Text fontSize="0.875rem" ml="0.5rem">Neo3</Text>
                 </Flex>
