@@ -41,7 +41,7 @@ export class N3Helper {
                         : a
     ))
 
-    contractInvoke = async (account: Account, scriptHash: string, operation: string, ...args: any[]) => {
+    contractInvoke = async (account: Account, scriptHash: string, operation: string, ...args: any[]): Promise<any> => {
         const contract = new Neon.experimental.SmartContract(
             Neon.u.HexString.fromHex(scriptHash),
             {

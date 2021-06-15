@@ -15,7 +15,7 @@
     "build": "react-scripts build",
     "deploy": "aws s3 sync ./build s3://web-wallet-coz --acl public-read",
     "deploy:develop": "aws s3 sync ./build s3://web-wallet-coz-dev --acl public-read",
-    "lint": "eslint ./src/**/*.tsx",
+    "lint": "eslint ./src/**/*.ts*",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
