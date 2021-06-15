@@ -13,6 +13,8 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "deploy": "aws s3 sync ./build s3://web-wallet-coz --acl public-read",
+    "deploy:develop": "aws s3 sync ./build s3://web-wallet-coz-dev --acl public-read",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -40,9 +42,9 @@
     "@types/react-dom": "^16.9.8",
     "@types/react-qr-reader": "^2.1.3",
     "@types/styled-components": "^5.1.2",
-    "@walletconnect/client": "^2.0.0-alpha.42",
-    "@walletconnect/types": "^2.0.0-alpha.42",
-    "@walletconnect/utils": "^2.0.0-alpha.42",
+    "@walletconnect/client": "2.0.0-alpha.42",
+    "@walletconnect/types": "2.0.0-alpha.42",
+    "@walletconnect/utils": "2.0.0-alpha.42",
     "axios": "^0.21.1",
     "framer-motion": "^4.1.16",
     "keyvaluestorage": "^0.7.1",
@@ -50,7 +52,7 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.1",
     "react-qr-reader": "^2.2.1",
-    "react-scripts": "^4.0.1",
+    "react-scripts": "^4.0.3",
     "styled-components": "^5.2.0",
     "typescript": "^4.2.3"
   },
