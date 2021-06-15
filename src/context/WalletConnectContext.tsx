@@ -154,7 +154,7 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
         throw new Error("Client is not initialized");
       }
       console.log("EVENT", "session_proposal");
-      const unsupportedChains = [];
+      const unsupportedChains: string[] = [];
       proposal.permissions.blockchain.chains.forEach(chainId => {
         if (chains.includes(chainId)) return;
         unsupportedChains.push(chainId);
@@ -162,7 +162,7 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
       if (unsupportedChains.length) {
         return wcClient.reject({proposal});
       }
-      const unsupportedMethods = [];
+      const unsupportedMethods: string[] = [];
       proposal.permissions.jsonrpc.methods.forEach(method => {
         if (DEFAULT_METHODS.includes(method)) return;
         unsupportedMethods.push(method);
