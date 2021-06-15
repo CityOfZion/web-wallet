@@ -73,4 +73,4 @@ export default function DefaultCard(props: DividerProps & {
       <Spacer/>
     </Flex>
   );
-};
+}

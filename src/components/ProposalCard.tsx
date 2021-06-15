@@ -14,7 +14,7 @@ export default function ProposalCard(props: DividerProps) {
         <Flex direction="column" bg="#252b36" w="23rem" boxShadow="dark-lg" p="0.5rem">
           <Peer metadata={firstProposal.proposer.metadata} />
           <Flex direction="column" bg="#00000022" boxShadow="inset 0 2px 3px 0 #00000033" mt="0.9rem" p="0.7rem">
-          {!!firstProposal.permissions.blockchain.chains.length ? (
+          {!firstProposal.permissions.blockchain.chains.length ? (
             <>
               <Text fontSize="0.875rem" color="#888888" fontWeight="bold">Chains</Text>
               {firstProposal.permissions.blockchain.chains.map(chainId => (
@@ -25,7 +25,7 @@ export default function ProposalCard(props: DividerProps) {
               ))}
             </>
           ) : null}
-          {!!firstProposal.permissions.jsonrpc.methods.length ? (
+          {!firstProposal.permissions.jsonrpc.methods.length ? (
             <>
               <Text fontSize="0.875rem" color="#888888" fontWeight="bold" mt="1.5rem">Methods</Text>
               <Text fontSize="0.875rem" mt="0.5rem">{firstProposal.permissions.jsonrpc.methods.join(', ')}</Text>
@@ -47,4 +47,4 @@ export default function ProposalCard(props: DividerProps) {
       <Spacer />
     </Flex>
   );
-};
+}

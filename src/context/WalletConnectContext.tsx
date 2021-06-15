@@ -80,7 +80,6 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
       subscribeToEvents()
       checkPersistedState()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wcClient])
 
   const init = async () => {

@@ -88,4 +88,4 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
       <Spacer/>
     </Flex>
   );
-};
+}

@@ -3,7 +3,7 @@ import DefaultCard from "./components/DefaultCard";
 import RequestCard from "./components/RequestCard";
 import ProposalCard from "./components/ProposalCard";
 import {useWalletConnect} from "./context/WalletConnectContext";
-import {CloseButton, Flex, Spacer, Spinner, useToast} from "@chakra-ui/react";
+import {CloseButton, Flex, Spacer, Spinner} from "@chakra-ui/react";
 import Header from "./components/Header";
 import {useAccountContext} from "./context/AccountContext";
 import AccountEntry from "./components/AccountEntry";
@@ -33,7 +33,7 @@ export default function App() {
             <Spinner />
             <Spacer />
           </Flex>
-        : !!walletConnectCtx.sessionProposals.length ?
+        : !walletConnectCtx.sessionProposals.length ?
           <ProposalCard flex={1} />
         : requestOpen ?
             <RequestCard requestEvent={requestOpen} closeRequest={() => setRequestOpen(undefined)} flex={1} />

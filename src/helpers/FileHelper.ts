@@ -100,7 +100,7 @@ export abstract class FileHelper {
 
   static promptForMultipleFiles(
     accept: string | null = null,
-    multiple: boolean = true
+    multiple = true
   ): Promise<File[] | null> {
     return new Promise(resolve => {
       const input = document.createElement('input')

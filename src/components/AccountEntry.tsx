@@ -59,6 +59,7 @@ export default function AccountEntry(props: DividerProps) {
             try {
                 await acc.encrypt(accountCtx.accountPassword)
             } catch (e) {
+                console.log("error encrypting account")
             }
             await walletConnectCtx.storage.setItem("account", acc.export())
         }
