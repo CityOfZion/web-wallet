@@ -3,7 +3,7 @@ import Peer from "../components/Peer";
 import {Button, DividerProps, Flex, Image, Spacer, Text} from "@chakra-ui/react";
 import {useWalletConnect} from "../context/WalletConnectContext";
 
-export default function ProposalCard(props: DividerProps) {
+export default function ProposalCard(props: DividerProps): any {
   const walletConnectCtx = useWalletConnect()
   const firstProposal = walletConnectCtx.sessionProposals[0]
 

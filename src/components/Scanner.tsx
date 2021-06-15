@@ -73,11 +73,11 @@ class Scanner extends React.Component<ScannerProps, ScannerState> {
     delay: 300,
   };
 
-  public stopRecording = async () => {
+  public stopRecording: any = async () => {
     await this.setState({ delay: false });
   };
 
-  public handleScan = (data: string | null) => {
+  public handleScan: any = (data: string | null) => {
     if (data) {
       const { result, error } = this.props.onValidate(data);
       if (result) {
@@ -89,13 +89,13 @@ class Scanner extends React.Component<ScannerProps, ScannerState> {
     }
   };
 
-  public handleError = (error: Error | null) => {
+  public handleError: any = (error: Error | null) => {
     if (error) {
       this.props.onError(error);
     }
   };
 
-  public onClose = async () => {
+  public onClose: any = async () => {
     try {
       await this.stopRecording();
       this.props.onClose();
@@ -104,10 +104,10 @@ class Scanner extends React.Component<ScannerProps, ScannerState> {
     }
   };
 
-  public componentWillUnmount() {
+  public componentWillUnmount(): any {
     this.stopRecording();
   }
-  public render() {
+  public render(): any {
     return (
       <SScannerContainer>
         <SCloseButton onClick={this.onClose}>

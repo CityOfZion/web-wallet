@@ -11,7 +11,7 @@ import {useEffect, useState} from "react";
 import ConnectDapp from "./components/ConnectDapp";
 import {SessionTypes} from "@walletconnect/types";
 
-export default function App() {
+export default function App(): any {
   const walletConnectCtx = useWalletConnect()
   const accountCtx = useAccountContext()
   const [connectingApp, setConnectingApp] = useState(false)

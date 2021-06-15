@@ -34,7 +34,7 @@ export const MotionLink = motion(
 export default function DefaultCard(props: DividerProps & {
   openConnectingDapp: () => any,
   openRequest: (request: SessionTypes.RequestEvent) => any
-}) {
+}): any {
   const walletConnectCtx = useWalletConnect()
 
   const {openConnectingDapp, openRequest, ...dividerProps} = props

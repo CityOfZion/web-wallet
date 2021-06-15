@@ -361,4 +361,4 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
   );
 }
 
-export const useWalletConnect = () => useContext(WalletConnectContext)
+export const useWalletConnect: any = () => useContext(WalletConnectContext)

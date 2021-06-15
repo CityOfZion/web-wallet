@@ -10,7 +10,7 @@ const chainMeta = {
     logo: 'https://cryptologos.cc/logos/neo-neo-logo.svg',
 }
 
-export default function Header() {
+export default function Header(): any {
     const walletConnectCtx = useWalletConnect()
     const accountCtx = useAccountContext()
 

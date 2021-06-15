@@ -4,7 +4,7 @@ import {useWalletConnect} from "../context/WalletConnectContext";
 import {useEffect, useState} from "react";
 import Scanner, {ScannerValidation} from "./Scanner";
 
-export default function ConnectDapp(props: DividerProps) {
+export default function ConnectDapp(props: DividerProps): any {
   const walletConnectCtx = useWalletConnect()
   const toast = useToast()
   const [scanner, setScanner] = useState<boolean>(false)

@@ -8,7 +8,7 @@ import KeyValueStorage from "keyvaluestorage";
 import {AccountJSON} from "@cityofzion/neon-core/lib/wallet/Account";
 import {useAccountContext} from "../context/AccountContext";
 
-export default function AccountEntry(props: DividerProps) {
+export default function AccountEntry(props: DividerProps): any {
     const walletConnectCtx = useWalletConnect()
     const accountCtx = useAccountContext()
     const toast = useToast()

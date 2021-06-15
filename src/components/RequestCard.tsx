@@ -6,7 +6,7 @@ import {useWalletConnect} from "../context/WalletConnectContext";
 import {SessionTypes} from "@walletconnect/types";
 import {useEffect, useState} from "react";
 
-export default function RequestCard(props: DividerProps & {requestEvent: SessionTypes.RequestEvent, closeRequest: () => void}) {
+export default function RequestCard(props: DividerProps & {requestEvent: SessionTypes.RequestEvent, closeRequest: () => void}): any {
   const walletConnectCtx = useWalletConnect()
   const [peer, setPeer] = useState<SessionTypes.Peer | undefined>(undefined)
   const [sendingResponse, setSendingResponse] = useState(false)

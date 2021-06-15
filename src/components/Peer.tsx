@@ -2,7 +2,7 @@ import * as React from "react";
 import {AppMetadata} from "@walletconnect/types";
 import {Flex, Image, Text, Link, Spacer, DividerProps} from "@chakra-ui/react";
 
-export default function Peer(props: { metadata: AppMetadata } & DividerProps) {
+export default function Peer(props: { metadata: AppMetadata } & DividerProps): any {
   return (
     <Flex h="5rem" {...props}>
       <Image w="5rem" src={props.metadata.icons[0]} alt={props.metadata.name} />
