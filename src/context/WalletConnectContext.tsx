@@ -7,8 +7,6 @@ import {
   DEFAULT_LOGGER,
   DEFAULT_METHODS,
   DEFAULT_RELAY_PROVIDER,
-  DEFAULT_NEO_RPC_ADDRESS,
-  DEFAULT_NEO_NETWORK_MAGIC
 } from "../constants";
 import {ERROR, getAppMetadata, getError} from "@walletconnect/utils";
 import {N3Helper} from "../helpers/N3Helper";
@@ -38,7 +36,7 @@ interface IWalletConnectContext {
   results: any[],
   setResults: React.Dispatch<React.SetStateAction<any[]>>,
 
-  initClient: () => Promise<void>,
+  init: (rpcAddress: string, networkMagic: number) => Promise<void>,
   resetApp: () => Promise<void>,
   subscribeToEvents: () => void,
   checkPersistedState: () => Promise<void>,
@@ -72,15 +70,15 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
   const [results, setResults] = useState<any[]>([])
 
   useEffect(() => {
-    init()
+    initStorage()
   }, [])
 
-  const init = async () => {
-    setNeonHelper(new N3Helper(DEFAULT_NEO_RPC_ADDRESS, DEFAULT_NEO_NETWORK_MAGIC))
+  const initStorage = async () => {
     setStorage(new KeyValueStorage())
   }
 
-  const initClient = async () => {
+  const init = async (rpcAddress: string, networkMagic: number) => {
+    setNeonHelper(new N3Helper(rpcAddress, networkMagic))
     setWcClient(await Client.init({
       controller: true,
       relayProvider: DEFAULT_RELAY_PROVIDER,
@@ -91,13 +89,13 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
 
   const resetApp = async () => {
     setWcClient(undefined)
+    setSessionProposals([])
     setInitialized(false)
     setChains([])
     setAccounts([])
     setSessions([])
     setRequests([])
     setResults([])
-    await init()
   }
 
   const checkPersistedState = useCallback(async () => {
@@ -337,7 +335,7 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
     results,
     setResults,
 
-    initClient,
+    init,
     resetApp,
     subscribeToEvents,
     checkPersistedState,
