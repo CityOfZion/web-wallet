@@ -1,6 +1,7 @@
 import {Icon} from "@chakra-ui/react"
+import {FunctionComponent} from "react";
 
-const LogoutIcon: any = (props: any) => (
+const LogoutIcon: FunctionComponent<any> = (props: any) => (
     <Icon viewBox="0 0 512.016 512" {...props}>
         <path fill="currentColor"
               d="m496 240.007812h-202.667969c-8.832031 0-16-7.167968-16-16 0-8.832031 7.167969-16 16-16h202.667969c8.832031 0 16 7.167969 16 16 0 8.832032-7.167969 16-16 16zm0 0"/>

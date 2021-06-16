@@ -7,11 +7,15 @@ import {useCallback, useEffect, useState} from "react";
 import KeyValueStorage from "keyvaluestorage";
 import {AccountJSON} from "@cityofzion/neon-core/lib/wallet/Account";
 import {useAccountContext} from "../context/AccountContext";
+import {DEFAULT_NEO_NETWORK_MAGIC, DEFAULT_NEO_RPC_ADDRESS} from "../constants";
 
 export default function AccountEntry(props: DividerProps): any {
     const walletConnectCtx = useWalletConnect()
     const accountCtx = useAccountContext()
     const toast = useToast()
+    const [rpcAddress, setRpcAddress] = useState(DEFAULT_NEO_RPC_ADDRESS)
+    const [networkMagic, setNetworkMagic] = useState(DEFAULT_NEO_NETWORK_MAGIC)
+    const [choseNetwork, setChoseNetwork] = useState(false)
     const [creatingNew, setCreatingNew] = useState(false)
     const [loading, setLoading] = useState(false)
 
@@ -35,23 +39,26 @@ export default function AccountEntry(props: DividerProps): any {
         e.preventDefault()
         setLoading(true)
         await passwordOnAccount()
-        await walletConnectCtx.initClient()
+        await walletConnectCtx.init(rpcAddress, networkMagic)
         setLoading(false)
     }
 
     const passwordOnAccount = async () => {
         if (walletConnectCtx.accounts.length && accountCtx.accountPassword && walletConnectCtx.storage) {
             const acc = walletConnectCtx.accounts[0]
-            try {
-                await acc.decrypt(accountCtx.accountPassword)
-            } catch (e) {
-                toast({
-                    title: e.message,
-                    status: "error",
-                    duration: 3000,
-                    isClosable: true,
-                })
-                return
+
+            if (!creatingNew) {
+                try {
+                    await acc.decrypt(accountCtx.accountPassword)
+                } catch (e) {
+                    toast({
+                        title: e.message,
+                        status: "error",
+                        duration: 3000,
+                        isClosable: true,
+                    })
+                    return
+                }
             }
             walletConnectCtx.setAccounts([acc])
             accountCtx.setAccountDecripted(true)
@@ -86,7 +93,24 @@ export default function AccountEntry(props: DividerProps): any {
         <Flex direction="column" align="center" {...props}>
             <Spacer/>
             {loading ? <Spinner alignSelf="center" />
-            : !walletConnectCtx.accounts.length ? (<>
+            : !choseNetwork ? <>
+                <Text fontSize="0.875rem" color="#888888">Choose your network?</Text>
+                <Text fontSize="0.75rem" mt="1.5rem" w="20rem">RPC Address</Text>
+                <Input onChange={(e: any) => setRpcAddress(e.target.value)}
+                       value={rpcAddress}
+                       borderColor="#373d4a" borderRadius={0} bg="#1a202b"
+                       _placeholder={{color: '#373d4a'}} mt="0.5rem" w="20rem"
+                />
+                <Text fontSize="0.75rem" mt="1.5rem" w="20rem">Magic Number</Text>
+                <Input onChange={(e: any) => setNetworkMagic(e.target.value)}
+                       value={networkMagic}
+                       borderColor="#373d4a" borderRadius={0} bg="#1a202b"
+                       _placeholder={{color: '#373d4a'}} mt="0.5rem" w="20rem"
+                />
+                <Button onClick={() => setChoseNetwork(true)} h="2.75rem" mt="1.5rem" bg="#373d4a" borderRadius={0} _hover={{bg: 'black'}}>
+                    Continue</Button>
+            </>
+            : !walletConnectCtx.accounts.length ? <>
                 <Text fontSize="0.875rem" color="#888888">Do you have an Account JSON File?</Text>
                 <Flex h="2.75rem" mt="1.5rem">
                     <Button onClick={importAccount} h="100%" bg="#373d4a" borderRadius={0} _hover={{bg: 'black'}}>
@@ -95,8 +119,7 @@ export default function AccountEntry(props: DividerProps): any {
                             ml="0.5rem">
                         No, Generate a new one</Button>
                 </Flex>
-            </>) : (<>
-                <Flex>
+            </> : <Flex>
                     <Flex as="form" onSubmit={login} direction="column" align="center">
                         <Text fontSize="0.875rem" color="#888888" fontWeight="bold">{
                             !creatingNew ? `Login with this Account` : `Create Account`
@@ -132,8 +155,7 @@ export default function AccountEntry(props: DividerProps): any {
                             </Button>
                         }
                     </Flex>
-                </Flex>
-            </>)}
+                </Flex>}
             <Spacer/>
         </Flex>
     );

@@ -10,11 +10,11 @@ export abstract class FileHelper {
     })
   }
 
-  static async fileToArrBuffer(file: File): Promise<any> {
+  static async fileToArrBuffer(file: File): Promise<ArrayBuffer | null> {
     return await this.fileOrBlobToArrBuffer(file)
   }
 
-  static async blobToArrBuffer(blob: Blob): Promise<any> {
+  static async blobToArrBuffer(blob: Blob): Promise<ArrayBuffer | null> {
     return await this.fileOrBlobToArrBuffer(blob)
   }
 
@@ -40,7 +40,7 @@ export abstract class FileHelper {
     })
   }
 
-  static canvasToBlob(canvas: HTMLCanvasElement): Promise<any> {
+  static canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
     return new Promise<Blob | null>(resolve => {
       canvas.toBlob((blob: Blob | null) => {
         resolve(blob)
@@ -48,7 +48,7 @@ export abstract class FileHelper {
     })
   }
 
-  static urlToBlob(dataURI: string): any {
+  static urlToBlob(dataURI: string): Blob {
     let byteString: string
     if (dataURI.split(',')[0].indexOf('base64') >= 0) {
       byteString = atob(dataURI.split(',')[1])
@@ -71,29 +71,29 @@ export abstract class FileHelper {
     return new Blob([ia], {type: mimeString})
   }
 
-  static urlToArrayBuffer(dataURI: string): any {
+  static urlToArrayBuffer(dataURI: string): Promise<ArrayBuffer | null> {
     const blob = this.urlToBlob(dataURI)
     return this.fileOrBlobToArrBuffer(blob)
   }
 
-  static async fileToImg(file: File | Blob): Promise<any> {
+  static async fileToImg(file: File | Blob): Promise<HTMLImageElement> {
     const url = await this.fileToUrl(file)
     return await this.urlToImg(url)
   }
 
-  static fileOrBlobToExtension(file: Blob | File): any {
+  static fileOrBlobToExtension(file: Blob | File): string {
     return file.type.includes('jpeg') ? 'jpg' : file.type.split('/')[1]
   }
 
-  static arrayBufferToBlob(arrayBuffer: ArrayBuffer): any {
+  static arrayBufferToBlob(arrayBuffer: ArrayBuffer): Blob {
     return new Blob([arrayBuffer], {type: 'image/jpeg'})
   }
 
-  static blobToUrl(blob: Blob): any {
+  static blobToUrl(blob: Blob): string {
     return (window.URL || window.webkitURL).createObjectURL(blob)
   }
 
-  static arrayBufferToUrl(arrayBuffer: ArrayBuffer): any {
+  static arrayBufferToUrl(arrayBuffer: ArrayBuffer): string {
     const blob = this.arrayBufferToBlob(arrayBuffer)
     return this.blobToUrl(blob)
   }
@@ -137,7 +137,7 @@ export abstract class FileHelper {
     return files[0]
   }
 
-  static downloadJsonFile(name: string, obj: unknown): any {
+  static downloadJsonFile(name: string, obj: unknown): void {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(obj));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href",     dataStr);
