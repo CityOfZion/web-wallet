@@ -75,14 +75,6 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
     init()
   }, [])
 
-  useEffect(() => {
-    if (wcClient) {
-      subscribeToEvents()
-      checkPersistedState()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wcClient])
-
   const init = async () => {
     setNeonHelper(new N3Helper(DEFAULT_NEO_RPC_ADDRESS, DEFAULT_NEO_NETWORK_MAGIC))
     setStorage(new KeyValueStorage())
@@ -108,14 +100,15 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
     await init()
   }
 
-  const checkPersistedState = async () => {
+  const checkPersistedState = useCallback(async () => {
     if (typeof wcClient === "undefined") {
       throw new Error("Client is not initialized");
     }
     setSessions(wcClient.session.values)
     setRequests(wcClient.session.history.pending)
+    console.log('checkPersistedState done')
     setInitialized(true)
-  };
+  }, [wcClient]);
 
   // ---- MAKE REQUESTS AND SAVE/CHECK IF APPROVED ------------------------------//
 
@@ -215,6 +208,13 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
       setSessions(wcClient.session.values)
     });
   }, [chains, checkApprovedRequest, makeRequest, respondRequest, wcClient]);
+
+  useEffect(() => {
+    if (wcClient) {
+      subscribeToEvents()
+      checkPersistedState()
+    }
+  }, [wcClient, subscribeToEvents, checkPersistedState])
 
   const onURI = async (data: any) => {
     const uri = typeof data === "string" ? data : "";

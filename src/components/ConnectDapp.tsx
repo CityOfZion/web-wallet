@@ -1,7 +1,7 @@
 import * as React from "react";
 import {Box, Button, DividerProps, Flex, Input, Spacer, Spinner, Text, useToast} from "@chakra-ui/react";
 import {useWalletConnect} from "../context/WalletConnectContext";
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import Scanner, {ScannerValidation} from "./Scanner";
 
 export default function ConnectDapp(props: DividerProps) {
@@ -65,7 +65,7 @@ export default function ConnectDapp(props: DividerProps) {
     setLoading(false)
   }, [walletConnectCtx.sessionProposals.length])
 
-  const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+  const handleUnhandledRejection = useCallback((event: PromiseRejectionEvent) => {
     if (event.reason.message.includes('No matching pairing')) {
       setLoading(false)
       toast({
@@ -76,7 +76,7 @@ export default function ConnectDapp(props: DividerProps) {
       })
       event.preventDefault();
     }
-  }
+  }, [toast])
 
   useEffect(() => {
     window.addEventListener("unhandledrejection", handleUnhandledRejection)
@@ -84,7 +84,7 @@ export default function ConnectDapp(props: DividerProps) {
     return () => {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
-  }, [])
+  }, [handleUnhandledRejection])
 
   return (
     <Flex direction="column" align="center" {...props}>
