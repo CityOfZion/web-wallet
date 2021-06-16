@@ -42,16 +42,19 @@ export default function AccountEntry(props: DividerProps): any {
     const passwordOnAccount = async () => {
         if (walletConnectCtx.accounts.length && accountCtx.accountPassword && walletConnectCtx.storage) {
             const acc = walletConnectCtx.accounts[0]
-            try {
-                await acc.decrypt(accountCtx.accountPassword)
-            } catch (e) {
-                toast({
-                    title: e.message,
-                    status: "error",
-                    duration: 3000,
-                    isClosable: true,
-                })
-                return
+
+            if (!creatingNew) {
+                try {
+                    await acc.decrypt(accountCtx.accountPassword)
+                } catch (e) {
+                    toast({
+                        title: e.message,
+                        status: "error",
+                        duration: 3000,
+                        isClosable: true,
+                    })
+                    return
+                }
             }
             walletConnectCtx.setAccounts([acc])
             accountCtx.setAccountDecripted(true)

@@ -33,7 +33,7 @@ export default function App(): any {
             <Spinner />
             <Spacer />
           </Flex>
-        : !walletConnectCtx.sessionProposals.length ?
+        : walletConnectCtx.sessionProposals.length ?
           <ProposalCard flex={1} />
         : requestOpen ?
             <RequestCard requestEvent={requestOpen} closeRequest={() => setRequestOpen(undefined)} flex={1} />

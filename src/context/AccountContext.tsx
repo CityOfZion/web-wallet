@@ -25,4 +25,4 @@ export const AccountContextProvider: React.FC = ({ children }) => {
     );
 }
 
-export const useAccountContext: any = () => useContext(AccountContext)
+export const useAccountContext = (): IAccountContext => useContext(AccountContext)

@@ -75,13 +75,6 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
     init()
   }, [])
 
-  useEffect(() => {
-    if (wcClient) {
-      subscribeToEvents()
-      checkPersistedState()
-    }
-  }, [wcClient])
-
   const init = async () => {
     setNeonHelper(new N3Helper(DEFAULT_NEO_RPC_ADDRESS, DEFAULT_NEO_NETWORK_MAGIC))
     setStorage(new KeyValueStorage())
@@ -107,14 +100,14 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
     await init()
   }
 
-  const checkPersistedState = async () => {
+  const checkPersistedState = useCallback(async () => {
     if (typeof wcClient === "undefined") {
       throw new Error("Client is not initialized");
     }
     setSessions(wcClient.session.values)
     setRequests(wcClient.session.history.pending)
     setInitialized(true)
-  };
+  }, [wcClient]);
 
   // ---- MAKE REQUESTS AND SAVE/CHECK IF APPROVED ------------------------------//
 
@@ -214,6 +207,13 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
       setSessions(wcClient.session.values)
     });
   }, [chains, checkApprovedRequest, makeRequest, respondRequest, wcClient]);
+
+  useEffect(() => {
+    if (wcClient) {
+      subscribeToEvents()
+      checkPersistedState()
+    }
+  }, [wcClient, subscribeToEvents, checkPersistedState])
 
   const onURI = async (data: any) => {
     const uri = typeof data === "string" ? data : "";
@@ -361,4 +361,4 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
   );
 }
 
-export const useWalletConnect: any = () => useContext(WalletConnectContext)
+export const useWalletConnect = (): IWalletConnectContext => useContext(WalletConnectContext)
