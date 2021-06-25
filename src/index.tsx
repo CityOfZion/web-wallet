@@ -1,15 +1,29 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import {ChakraProvider} from "@chakra-ui/react"
-import {WalletConnectContextProvider} from "./context/WalletConnectContext";
-
+import {
+  DEFAULT_APP_METADATA,
+  DEFAULT_CHAIN_ID,
+  DEFAULT_LOGGER,
+  DEFAULT_METHODS,
+  DEFAULT_RELAY_PROVIDER,
+} from "./constants";
 import App from "./App";
+import {WalletConnectContextProvider} from "./context/WalletConnectContext";
 import {AccountContextProvider} from "./context/AccountContext";
+
+const wcOptions = {
+  appMetadata: DEFAULT_APP_METADATA,
+  chainIds: [DEFAULT_CHAIN_ID],
+  logger: DEFAULT_LOGGER,
+  methods: DEFAULT_METHODS,
+  relayServer: DEFAULT_RELAY_PROVIDER
+}
 
 ReactDOM.render(
     <>
         <ChakraProvider>
-            <WalletConnectContextProvider>
+            <WalletConnectContextProvider options={wcOptions}>
                 <AccountContextProvider>
                     <App/>
                 </AccountContextProvider>

@@ -1,34 +1,23 @@
-import React, {useCallback, useContext, useEffect, useState} from "react";
+import React, {useCallback, useContext, useEffect, useState} from 'react';
 import Client, {CLIENT_EVENTS} from "@walletconnect/client";
-import {SessionTypes} from "@walletconnect/types";
-import {
-  DEFAULT_APP_METADATA,
-  DEFAULT_CHAIN_ID,
-  DEFAULT_LOGGER,
-  DEFAULT_METHODS,
-  DEFAULT_RELAY_PROVIDER,
-} from "../constants";
+import {AppMetadata, SessionTypes} from "@walletconnect/types";
 import {ERROR, getAppMetadata, getError} from "@walletconnect/utils";
-import {N3Helper} from "../helpers/N3Helper";
-import {Account} from "@cityofzion/neon-core/lib/wallet/Account";
 import KeyValueStorage from "keyvaluestorage";
 import {formatJsonRpcError, JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
+
+type OnRequestCallback = (accountAddress: string, chainId: string, request: JsonRpcRequest) => Promise<JsonRpcResponse>
 
 interface IWalletConnectContext {
   wcClient: Client | undefined,
   setWcClient: React.Dispatch<React.SetStateAction<Client | undefined>>,
   storage: KeyValueStorage | undefined,
   setStorage: React.Dispatch<React.SetStateAction<KeyValueStorage | undefined>>,
-  neonHelper: N3Helper | undefined,
-  setNeonHelper: React.Dispatch<React.SetStateAction<N3Helper | undefined>>,
   sessionProposals: SessionTypes.Proposal[],
   setSessionProposals: React.Dispatch<React.SetStateAction<SessionTypes.Proposal[]>>,
   initialized: boolean,
   setInitialized: React.Dispatch<React.SetStateAction<boolean>>,
   chains: string[],
   setChains: React.Dispatch<React.SetStateAction<string[]>>,
-  accounts: Account[],
-  setAccounts: React.Dispatch<React.SetStateAction<Account[]>>,
   sessions: SessionTypes.Created[],
   setSessions: React.Dispatch<React.SetStateAction<SessionTypes.Created[]>>,
   requests: SessionTypes.RequestEvent[],
@@ -36,7 +25,7 @@ interface IWalletConnectContext {
   results: any[],
   setResults: React.Dispatch<React.SetStateAction<any[]>>,
 
-  init: (rpcAddress: string, networkMagic: number) => Promise<void>,
+  init: () => Promise<void>,
   resetApp: () => Promise<void>,
   subscribeToEvents: () => void,
   checkPersistedState: () => Promise<void>,
@@ -46,44 +35,52 @@ interface IWalletConnectContext {
   onURI: (data: any) => Promise<void>,
   getPeerOfRequest: (requestEvent: SessionTypes.RequestEvent) => Promise<SessionTypes.Peer>,
   approveSession: (proposal: SessionTypes.Proposal) => Promise<void>,
-  accountsAsString: (accounts: Account[]) => string[],
   rejectSession: (proposal: SessionTypes.Proposal) => Promise<void>,
   disconnect: (topic: string) => Promise<void>,
   removeFromPending: (requestEvent: SessionTypes.RequestEvent) => Promise<void>,
   respondRequest: (topic: string, response: JsonRpcResponse) => Promise<void>,
   approveRequest: (requestEvent: SessionTypes.RequestEvent) => Promise<void>,
   rejectRequest: (requestEvent: SessionTypes.RequestEvent) => Promise<void>,
+  onRequestListener: (listener: OnRequestCallback) => void,
+  addAccountAndChain: (address: string, chain: string) => void,
+  removeAccountAndChain: (address: string, chain: string) => void,
+  clearAccountAndChain: () => void,
+}
+
+export interface CtxOptions {
+  appMetadata: AppMetadata,
+  chainIds: string[],
+  logger: string,
+  methods: string[],
+  relayServer: string,
 }
 
 export const WalletConnectContext = React.createContext({} as IWalletConnectContext)
 
-export const WalletConnectContextProvider: React.FC = ({children}) => {
+export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, children: any }> = ({ options, children }) => {
   const [wcClient, setWcClient] = useState<Client | undefined>(undefined)
   const [storage, setStorage] = useState<KeyValueStorage | undefined>(undefined)
-  const [neonHelper, setNeonHelper] = useState<N3Helper | undefined>(undefined)
   const [sessionProposals, setSessionProposals] = useState<SessionTypes.Proposal[]>([])
   const [initialized, setInitialized] = useState<boolean>(false)
-  const [chains, setChains] = useState<string[]>([DEFAULT_CHAIN_ID])
-  const [accounts, setAccounts] = useState<Account[]>([])
+  const [chains, setChains] = useState<string[]>(options.chainIds)
+  const [accounts, setAccounts] = useState<string[]>([])
   const [sessions, setSessions] = useState<SessionTypes.Created[]>([])
   const [requests, setRequests] = useState<SessionTypes.RequestEvent[]>([])
   const [results, setResults] = useState<any[]>([])
+  const [onRequestCallback, setOnRequestCallback] = useState<OnRequestCallback | undefined>(undefined)
 
   useEffect(() => {
-    initStorage()
+    init()
   }, [])
 
-  const initStorage = async () => {
-    setStorage(new KeyValueStorage())
-  }
-
-  const init = async (rpcAddress: string, networkMagic: number) => {
-    setNeonHelper(new N3Helper(rpcAddress, networkMagic))
+  const init = async () => {
+    const st = new KeyValueStorage()
+    setStorage(st)
     setWcClient(await Client.init({
       controller: true,
-      relayProvider: DEFAULT_RELAY_PROVIDER,
-      logger: DEFAULT_LOGGER,
-      storage,
+      relayProvider: options.relayServer,
+      logger: options.logger,
+      storage: st,
     }));
   };
 
@@ -109,21 +106,26 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
 
   // ---- MAKE REQUESTS AND SAVE/CHECK IF APPROVED ------------------------------//
 
+  const onRequestListener = (listener: OnRequestCallback) => {
+    setOnRequestCallback(() => listener)
+  }
+
   const approveAndMakeRequest = async (request: JsonRpcRequest) => {
     storage?.setItem(`request-${JSON.stringify(request)}`, true)
     return await makeRequest(request)
   }
 
   const makeRequest = useCallback(async (request: JsonRpcRequest) => {
-    if (!neonHelper) {
-      throw new Error("no RPC client")
-    }
     // TODO: allow multiple accounts
-    return await neonHelper.rpcCall(accounts[0], request);
-  }, [accounts, neonHelper])
+    const [address, chainId] = accounts[0].split('@')
+    if (!onRequestCallback) {
+      throw new Error("There is no onRequestCallback")
+    }
+    return await onRequestCallback(address, chainId, request);
+  }, [accounts])
 
   const checkApprovedRequest = useCallback(async (request: JsonRpcRequest) => {
-    return await storage?.getItem<boolean>(`request-${JSON.stringify(request)}`)
+    return storage?.getItem<boolean>(`request-${JSON.stringify(request)}`);
   }, [storage])
 
   const respondRequest = useCallback(async (topic: string, response: JsonRpcResponse) => {
@@ -155,13 +157,15 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
       }
       const unsupportedMethods: string[] = [];
       proposal.permissions.jsonrpc.methods.forEach(method => {
-        if (DEFAULT_METHODS.includes(method)) return;
+        if (options.methods.includes(method)) return;
         unsupportedMethods.push(method);
       });
       if (unsupportedMethods.length) {
         return wcClient.reject({proposal});
       }
       setSessionProposals((old) => [...old, proposal]);
+
+      return null;
     });
 
     wcClient.on(
@@ -239,23 +243,17 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
       throw new Error("Accounts is undefined");
     }
     const accs = accounts.filter(account => {
-      const chainId = accAsStr(account).split("@")[1];
+      const chainId = account.split("@")[1];
       return proposal.permissions.blockchain.chains.includes(chainId);
     });
     const response = {
-      state: {accounts: accountsAsString(accs)},
-      metadata: getAppMetadata() || DEFAULT_APP_METADATA,
+      state: {accounts: accs},
+      metadata: getAppMetadata() || options.appMetadata,
     };
     const session = await wcClient.approve({proposal, response});
     setSessionProposals((old) => old.filter(i => i !== proposal))
     setSessions([session]);
   };
-
-  const accountsAsString = (accounts: Account[]) => {
-    return accounts.map(acc => accAsStr(acc));
-  }
-
-  const accAsStr = (acc: Account) => `${acc.address}@${DEFAULT_CHAIN_ID}`
 
   const rejectSession = async (proposal: SessionTypes.Proposal) => {
     console.log("ACTION", "rejectSession");
@@ -313,21 +311,30 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
     await removeFromPending(requestEvent);
   };
 
+  const addAccountAndChain = (address: string, chain: string) => {
+    setAccounts((oldAccs) => [...oldAccs, `${address}@${chain}`])
+  }
+
+  const removeAccountAndChain = (address: string, chain: string) => {
+    setAccounts((oldAccs) => [...oldAccs.filter((acc) => acc !== `${address}@${chain}`)])
+  }
+
+  const clearAccountAndChain = () => {
+    setAccounts([])
+  }
+
+
   const contextValue: IWalletConnectContext = {
     wcClient,
     setWcClient,
     storage,
     setStorage,
-    neonHelper,
-    setNeonHelper,
     sessionProposals,
     setSessionProposals,
     initialized,
     setInitialized,
     chains,
     setChains,
-    accounts,
-    setAccounts,
     sessions,
     setSessions,
     requests,
@@ -345,13 +352,16 @@ export const WalletConnectContextProvider: React.FC = ({children}) => {
     onURI,
     getPeerOfRequest,
     approveSession,
-    accountsAsString,
     rejectSession,
     disconnect,
     removeFromPending,
     respondRequest,
     approveRequest,
     rejectRequest,
+    onRequestListener,
+    addAccountAndChain,
+    removeAccountAndChain,
+    clearAccountAndChain,
   }
 
   return (

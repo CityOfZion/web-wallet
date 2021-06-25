@@ -25,13 +25,12 @@ export default function Header(): any {
     }
 
     const exportAccount = async () => {
-        const acc = walletConnectCtx.accounts[0]
-        const json = walletConnectCtx.accounts[0].export()
-        FileHelper.downloadJsonFile(acc?.address ?? '', json)
+        const json = accountCtx.account?.export()
+        FileHelper.downloadJsonFile(accountCtx.account?.address ?? '', json)
     }
 
     const isLoggedIn = () => {
-        return !!walletConnectCtx.accounts.length && accountCtx.accountDecripted
+        return accountCtx.account && accountCtx.accountDecripted
     }
 
     return (
@@ -42,15 +41,15 @@ export default function Header(): any {
             </Flex>
             {isLoggedIn() && (
                 <Flex direction="column" align="right">
-                    {walletConnectCtx.accounts.map(account => (
+                    {accountCtx.account &&
                         <Flex
-                            key={account.address}
+                            key={accountCtx.account.address}
                             align="center"
                         >
                             <Image src={chainMeta.logo} alt={chainMeta.name} title={chainMeta.name} w="1.6rem"
                                    mr="0.5rem"/>
                             <Flex direction="column">
-                                <Text fontSize="0.875rem">{ellipseAddress(account.address, 8)}</Text>
+                                <Text fontSize="0.875rem">{ellipseAddress(accountCtx.account.address, 8)}</Text>
                                 <Link fontSize="0.875rem" mt="-0.3rem" color="#888888" onClick={exportAccount}>
                                     Download JSON File
                                 </Link>
@@ -58,8 +57,7 @@ export default function Header(): any {
                             <Link ml="0.6rem" onClick={logout}>
                                 <LogoutIcon boxSize="1.4rem" color="#888888"/>
                             </Link>
-                        </Flex>
-                        ))}
+                        </Flex>}
                 </Flex>
             )}
         </Flex>
