@@ -1,10 +1,9 @@
 import * as React from "react";
-import Scanner from "./components/Scanner";
 import DefaultCard from "./components/DefaultCard";
 import RequestCard from "./components/RequestCard";
 import ProposalCard from "./components/ProposalCard";
 import {useWalletConnect} from "./context/WalletConnectContext";
-import {CloseButton, Flex, Spacer, Spinner, toast, useToast} from "@chakra-ui/react";
+import {CloseButton, Flex, Spacer, Spinner} from "@chakra-ui/react";
 import Header from "./components/Header";
 import {useAccountContext} from "./context/AccountContext";
 import AccountEntry from "./components/AccountEntry";
@@ -14,7 +13,6 @@ import {SessionTypes} from "@walletconnect/types";
 
 export default function App() {
   const walletConnectCtx = useWalletConnect()
-  const toast = useToast()
   const accountCtx = useAccountContext()
   const [connectingApp, setConnectingApp] = useState(false)
   const [requestOpen, setRequestOpen] = useState<SessionTypes.RequestEvent | undefined>(undefined)

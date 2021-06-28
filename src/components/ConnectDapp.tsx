@@ -84,7 +84,7 @@ export default function ConnectDapp(props: DividerProps) {
     return () => {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
-  }, [])
+  })
 
   return (
     <Flex direction="column" align="center" {...props}>
