@@ -11,7 +11,7 @@ export const DEFAULT_APP_METADATA = {
   icons: ["https://raw.githubusercontent.com/CityOfZion/visual-identity/develop/_CoZ%20Branding/_Logo/_Logo%20icon/_PNG%20200x178px/CoZ_Icon_DARKBLUE_200x178px.png"],
 };
 
-export const DEFAULT_CHAIN_ID = "neo3:ihavenoidea";
+export const DEFAULT_CHAIN_ID = "neo3:testnet";
 
 export const DEFAULT_NEO_RPC_ADDRESS = "https://testnet1.neo.coz.io:443";
 export const DEFAULT_NEO_NETWORK_MAGIC = 844378958;
