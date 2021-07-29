@@ -10,7 +10,7 @@ import AccountEntry from "./components/AccountEntry";
 import {useEffect, useState} from "react";
 import ConnectDapp from "./components/ConnectDapp";
 import {SessionTypes} from "@walletconnect/types";
-import {JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
+import {JsonRpcRequest} from "@json-rpc-tools/utils";
 import {N3Helper} from "./helpers/N3Helper";
 
 export default function App(): any {
@@ -24,12 +24,12 @@ export default function App(): any {
   }, [walletConnectCtx.sessions])
 
   useEffect(() => {
-    walletConnectCtx.onRequestListener(async (accountAddress: string, chainId: string, req: JsonRpcRequest): Promise<JsonRpcResponse> => {
-      if (!accountCtx.account) {
-        throw new Error("Not logged in")
-      }
-      return await new N3Helper(accountCtx.rpcAddress, accountCtx.networkMagic).rpcCall(accountCtx.account, req)
-    })
+    // if the request method is 'testInvoke' we auto-accept it
+    walletConnectCtx.autoAcceptIntercept((acc, chain, req: JsonRpcRequest) =>
+      req.method === 'testInvoke')
+
+    walletConnectCtx.onRequestListener(async (acc, chain, req: JsonRpcRequest) =>
+      await new N3Helper(accountCtx.rpcAddress, accountCtx.networkMagic).rpcCall(accountCtx.account, req))
   }, [accountCtx.account])
 
   return (

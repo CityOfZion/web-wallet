@@ -6,6 +6,7 @@ import KeyValueStorage from "keyvaluestorage";
 import {formatJsonRpcError, JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
 
 type OnRequestCallback = (accountAddress: string, chainId: string, request: JsonRpcRequest) => Promise<JsonRpcResponse>
+type AutoAcceptCallback = (accountAddress: string | undefined, chainId: string | undefined, request: JsonRpcRequest) => boolean
 
 interface IWalletConnectContext {
   wcClient: Client | undefined,
@@ -42,6 +43,7 @@ interface IWalletConnectContext {
   approveRequest: (requestEvent: SessionTypes.RequestEvent) => Promise<void>,
   rejectRequest: (requestEvent: SessionTypes.RequestEvent) => Promise<void>,
   onRequestListener: (listener: OnRequestCallback) => void,
+  autoAcceptIntercept: (listener: AutoAcceptCallback) => void,
   addAccountAndChain: (address: string, chain: string) => void,
   removeAccountAndChain: (address: string, chain: string) => void,
   clearAccountAndChain: () => void,
@@ -68,6 +70,7 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
   const [requests, setRequests] = useState<SessionTypes.RequestEvent[]>([])
   const [results, setResults] = useState<any[]>([])
   const [onRequestCallback, setOnRequestCallback] = useState<OnRequestCallback | undefined>(undefined)
+  const [autoAcceptCallback, setAutoAcceptCallback] = useState<AutoAcceptCallback | undefined>(undefined)
 
   useEffect(() => {
     init()
@@ -108,6 +111,10 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
 
   const onRequestListener = (listener: OnRequestCallback) => {
     setOnRequestCallback(() => listener)
+  }
+
+  const autoAcceptIntercept = (listener: AutoAcceptCallback) => {
+    setAutoAcceptCallback(() => listener)
   }
 
   const approveAndMakeRequest = async (request: JsonRpcRequest) => {
@@ -173,22 +180,43 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
       async (requestEvent: SessionTypes.RequestEvent) => {
         // tslint:disable-next-line
         console.log("EVENT", CLIENT_EVENTS.session.request, requestEvent.request);
+
+        const askApproval = () => {
+          setRequests((old) => {
+            return [
+              ...(old.filter((i) => i.request.id !== requestEvent.request.id)),
+              requestEvent
+            ]
+          })
+        }
+
+        const approve = async () => {
+          const response = await makeRequest(requestEvent.request)
+          await respondRequest(requestEvent.topic, response);
+        }
+
+        const reject = async (message: string) => {
+          const response = formatJsonRpcError(requestEvent.request.id, message);
+          await respondRequest(requestEvent.topic, response);
+        }
+
         try {
           const alreadyApproved = await checkApprovedRequest(requestEvent.request);
-          if (!alreadyApproved) {
-            setRequests((old) => {
-              return [
-                ...(old.filter((i) => i.request.id !== requestEvent.request.id)),
-                requestEvent
-              ]
-            })
+          if (alreadyApproved) {
+            await approve()
+          } else if (autoAcceptCallback) {
+            const addressAndChainId = accounts[0]?.split('@')
+            const autoAccepted = autoAcceptCallback(addressAndChainId?.[0], addressAndChainId?.[1], requestEvent.request)
+            if (autoAccepted) {
+              await approve()
+            } else {
+              await askApproval()
+            }
           } else {
-            const response = await makeRequest(requestEvent.request)
-            await respondRequest(requestEvent.topic, response);
+            await askApproval()
           }
         } catch (e) {
-          const response = formatJsonRpcError(requestEvent.request.id, e.message);
-          await respondRequest(requestEvent.topic, response);
+          await reject(e.message)
         }
       },
     );
@@ -359,6 +387,7 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
     approveRequest,
     rejectRequest,
     onRequestListener,
+    autoAcceptIntercept,
     addAccountAndChain,
     removeAccountAndChain,
     clearAccountAndChain,

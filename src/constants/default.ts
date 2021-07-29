@@ -1,6 +1,6 @@
 export const DEFAULT_RELAY_PROVIDER = "wss://connect.coz.io";
 
-export const DEFAULT_METHODS = ["invokefunction"];
+export const DEFAULT_METHODS = ["invokefunction", "testInvoke"];
 
 export const DEFAULT_LOGGER = "debug";
 
