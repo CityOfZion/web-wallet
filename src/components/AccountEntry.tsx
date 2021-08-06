@@ -93,7 +93,7 @@ export default function AccountEntry(props: DividerProps): any {
             <Spacer/>
             {loading ? <Spinner alignSelf="center" />
             : !choseNetwork ? <>
-                <Text fontSize="0.875rem" color="#888888">Choose your network?</Text>
+                <Text fontSize="0.875rem" color="#888888">Choose your network</Text>
                 <Text fontSize="0.75rem" mt="1.5rem" w="20rem">RPC Address</Text>
                 <Input onChange={(e: any) => accountCtx.setRpcAddress(e.target.value)}
                        value={accountCtx.rpcAddress}

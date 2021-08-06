@@ -1,6 +1,7 @@
-import React, {useContext, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {DEFAULT_NEO_NETWORK_MAGIC, DEFAULT_NEO_RPC_ADDRESS} from "../constants";
 import {Account} from "@cityofzion/neon-core/lib/wallet";
+import {N3Helper} from "../helpers/N3Helper";
 
 interface IAccountContext {
     accountPassword: string | undefined,
@@ -23,6 +24,10 @@ export const AccountContextProvider: React.FC = ({ children }) => {
     const [rpcAddress, setRpcAddress] = useState(DEFAULT_NEO_RPC_ADDRESS)
     const [networkMagic, setNetworkMagic] = useState(DEFAULT_NEO_NETWORK_MAGIC)
     const [account, setAccount] = useState<Account | undefined>()
+
+    useEffect(() => {
+        N3Helper.getMagicOfRpcAddress(rpcAddress).then(magic => setNetworkMagic(magic))
+    }, [])
 
     const contextValue: IAccountContext = {
         accountPassword, setAccountPassword,

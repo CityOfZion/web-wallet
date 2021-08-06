@@ -11,6 +11,21 @@ export class N3Helper {
         this.networkMagic = networkMagic
     }
 
+    static init = async (rpcAddress: string, networkMagic?: number): Promise<N3Helper> => {
+        return new N3Helper(rpcAddress, networkMagic || (await N3Helper.getMagicOfRpcAddress(rpcAddress)))
+    }
+
+    static getMagicOfRpcAddress = async (rpcAddress: string): Promise<number> => {
+        const resp: any = await new rpc.RPCClient(rpcAddress).execute(Neon.create.query({
+            method: 'getversion',
+            params: [],
+            id: 1,
+            jsonrpc: "2.0"
+        }));
+
+        return resp.network
+    }
+
     rpcCall = async (account: Account | undefined, request: JsonRpcRequest): Promise<JsonRpcResponse> => {
         let result: any
 
