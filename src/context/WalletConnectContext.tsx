@@ -1,7 +1,7 @@
 import React, {useCallback, useContext, useEffect, useState} from 'react';
 import Client, {CLIENT_EVENTS} from "@walletconnect/client";
 import {AppMetadata, SessionTypes} from "@walletconnect/types";
-import {ERROR, getAppMetadata, getError} from "@walletconnect/utils";
+import {ERROR, getAppMetadata} from "@walletconnect/utils";
 import KeyValueStorage from "keyvaluestorage";
 import {formatJsonRpcError, JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
 
@@ -34,7 +34,7 @@ interface IWalletConnectContext {
   makeRequest: (request: JsonRpcRequest) => Promise<JsonRpcResponse<any>>,
   checkApprovedRequest: (request: JsonRpcRequest) => Promise<boolean | undefined>,
   onURI: (data: any) => Promise<void>,
-  getPeerOfRequest: (requestEvent: SessionTypes.RequestEvent) => Promise<SessionTypes.Peer>,
+  getPeerOfRequest: (requestEvent: SessionTypes.RequestEvent) => Promise<SessionTypes.Participant>,
   approveSession: (proposal: SessionTypes.Proposal) => Promise<void>,
   rejectSession: (proposal: SessionTypes.Proposal) => Promise<void>,
   disconnect: (topic: string) => Promise<void>,
@@ -88,6 +88,19 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
   };
 
   const resetApp = async () => {
+    try {
+      await Promise.all(
+        sessions.map(session =>
+          wcClient?.disconnect({
+            topic: session.topic,
+            reason: ERROR.USER_DISCONNECTED.format(),
+          }),
+        ),
+      );
+    } catch (e) {
+      // ignored
+    }
+
     setWcClient(undefined)
     setSessionProposals([])
     setInitialized(false)
@@ -124,7 +137,8 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
 
   const makeRequest = useCallback(async (request: JsonRpcRequest) => {
     // TODO: allow multiple accounts
-    const [address, chainId] = accounts[0].split('@')
+    const [namespace, reference, address] = accounts[0]?.split(':')
+    const chainId = `${namespace}:${reference}`;
     if (!onRequestCallback) {
       throw new Error("There is no onRequestCallback")
     }
@@ -149,11 +163,22 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
       throw new Error("Client is not initialized");
     }
 
+    if (!accounts.length) {
+      return
+    }
+
     wcClient.on(CLIENT_EVENTS.session.proposal, (proposal: SessionTypes.Proposal) => {
       if (typeof wcClient === "undefined") {
         throw new Error("Client is not initialized");
       }
       console.log("EVENT", "session_proposal");
+      const supportedNamespaces: string[] = [];
+      chains.forEach(chainId => {
+        const [namespace] = chainId.split(":");
+        if (!supportedNamespaces.includes(namespace)) {
+          supportedNamespaces.push(namespace);
+        }
+      });
       const unsupportedChains: string[] = [];
       proposal.permissions.blockchain.chains.forEach(chainId => {
         if (chains.includes(chainId)) return;
@@ -205,8 +230,14 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
           if (alreadyApproved) {
             await approve()
           } else if (autoAcceptCallback) {
-            const addressAndChainId = accounts[0]?.split('@')
-            const autoAccepted = autoAcceptCallback(addressAndChainId?.[0], addressAndChainId?.[1], requestEvent.request)
+            let address: string | undefined = undefined
+            let chainId: string | undefined = undefined
+            if (accounts.length) {
+              const [namespace, reference, addr] = accounts[0].split(':')
+              address = addr
+              chainId = `${namespace}:${reference}`;
+            }
+            const autoAccepted = autoAcceptCallback(address, chainId, requestEvent.request)
             if (autoAccepted) {
               await approve()
             } else {
@@ -215,7 +246,7 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
           } else {
             await askApproval()
           }
-        } catch (e) {
+        } catch (e: any) {
           await reject(e.message)
         }
       },
@@ -271,7 +302,8 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
       throw new Error("Accounts is undefined");
     }
     const accs = accounts.filter(account => {
-      const chainId = account.split("@")[1];
+      const [namespace, reference] = account.split(":");
+      const chainId = `${namespace}:${reference}`;
       return proposal.permissions.blockchain.chains.includes(chainId);
     });
     const response = {
@@ -299,7 +331,7 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
     }
     await wcClient.disconnect({
       topic,
-      reason: getError(ERROR.USER_DISCONNECTED),
+      reason: ERROR.USER_DISCONNECTED.format(),
     });
   };
 
@@ -340,11 +372,11 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
   };
 
   const addAccountAndChain = (address: string, chain: string) => {
-    setAccounts((oldAccs) => [...oldAccs, `${address}@${chain}`])
+    setAccounts((oldAccs) => [...oldAccs, `${chain}:${address}`])
   }
 
   const removeAccountAndChain = (address: string, chain: string) => {
-    setAccounts((oldAccs) => [...oldAccs.filter((acc) => acc !== `${address}@${chain}`)])
+    setAccounts((oldAccs) => [...oldAccs.filter((acc) => acc !== `${chain}:${address}`)])
   }
 
   const clearAccountAndChain = () => {
