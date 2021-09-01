@@ -50,7 +50,7 @@ export default function AccountEntry(props: DividerProps): any {
             if (!creatingNew) {
                 try {
                     await accountCtx.account.decrypt(accountCtx.accountPassword)
-                } catch (e) {
+                } catch (e: any) {
                     toast({
                         title: e.message,
                         status: "error",

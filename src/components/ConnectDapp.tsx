@@ -34,7 +34,7 @@ export default function ConnectDapp(props: DividerProps): any {
     const res: ScannerValidation = {error: null, result: null};
     try {
       res.result = data;
-    } catch (error) {
+    } catch (error: any) {
       res.error = error;
     }
 
