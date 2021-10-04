@@ -3,7 +3,7 @@ import * as ReactDOM from "react-dom";
 import {ChakraProvider} from "@chakra-ui/react"
 import {
   DEFAULT_APP_METADATA,
-  DEFAULT_CHAIN_ID,
+  DEFAULT_NETWORKS,
   DEFAULT_LOGGER,
   DEFAULT_METHODS,
   DEFAULT_RELAY_PROVIDER,
@@ -14,7 +14,7 @@ import {AccountContextProvider} from "./context/AccountContext";
 
 const wcOptions = {
   appMetadata: DEFAULT_APP_METADATA,
-  chainIds: [DEFAULT_CHAIN_ID],
+  chainIds: Object.keys(DEFAULT_NETWORKS),
   logger: DEFAULT_LOGGER,
   methods: DEFAULT_METHODS,
   relayServer: DEFAULT_RELAY_PROVIDER

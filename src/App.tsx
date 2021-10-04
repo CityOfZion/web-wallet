@@ -12,6 +12,7 @@ import ConnectDapp from "./components/ConnectDapp";
 import {SessionTypes} from "@walletconnect/types";
 import {JsonRpcRequest} from "@json-rpc-tools/utils";
 import {N3Helper} from "./helpers/N3Helper";
+import {DEFAULT_NETWORKS} from "./constants";
 
 export default function App(): any {
   const walletConnectCtx = useWalletConnect()
@@ -29,7 +30,7 @@ export default function App(): any {
       req.method === 'testInvoke')
 
     walletConnectCtx.onRequestListener(async (acc, chain, req: JsonRpcRequest) =>
-      await new N3Helper(accountCtx.rpcAddress, accountCtx.networkMagic).rpcCall(accountCtx.account, req))
+      await (await N3Helper.init(DEFAULT_NETWORKS[chain] || accountCtx.privateRpcAddress)).rpcCall(accountCtx.account, req))
   }, [accountCtx.account])
 
   return (

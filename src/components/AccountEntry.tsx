@@ -1,5 +1,5 @@
 import * as React from "react";
-import {Box, Button, DividerProps, Flex, Image, Input, Spacer, Spinner, Text, useToast} from "@chakra-ui/react";
+import {Box, Button, DividerProps, Flex, Image, Input, Select, Spacer, Spinner, Text, useToast} from "@chakra-ui/react";
 import {useWalletConnect} from "../context/WalletConnectContext";
 import {FileHelper} from "../helpers/FileHelper";
 import {wallet} from "@cityofzion/neon-js";
@@ -7,7 +7,6 @@ import {useCallback, useEffect, useState} from "react";
 import KeyValueStorage from "keyvaluestorage";
 import {Account, AccountJSON} from "@cityofzion/neon-core/lib/wallet/Account";
 import {useAccountContext} from "../context/AccountContext";
-import {DEFAULT_CHAIN_ID} from "../constants";
 
 export default function AccountEntry(props: DividerProps): any {
     const walletConnectCtx = useWalletConnect()
@@ -19,7 +18,7 @@ export default function AccountEntry(props: DividerProps): any {
 
     const setAccount = (acc: Account) => {
         accountCtx.setAccount(acc);
-        walletConnectCtx.addAccountAndChain(acc.address, DEFAULT_CHAIN_ID)
+        walletConnectCtx.addAccountAndChain(acc.address, accountCtx.networkType)
     }
 
     const loadAccountFromStorage = useCallback(async (storage: KeyValueStorage) => {
@@ -94,18 +93,23 @@ export default function AccountEntry(props: DividerProps): any {
             {loading ? <Spinner alignSelf="center" />
             : !choseNetwork ? <>
                 <Text fontSize="0.875rem" color="#888888">Choose your network</Text>
-                <Text fontSize="0.75rem" mt="1.5rem" w="20rem">RPC Address</Text>
-                <Input onChange={(e: any) => accountCtx.setRpcAddress(e.target.value)}
-                       value={accountCtx.rpcAddress}
-                       borderColor="#373d4a" borderRadius={0} bg="#1a202b"
-                       _placeholder={{color: '#373d4a'}} mt="0.5rem" w="20rem"
-                />
-                <Text fontSize="0.75rem" mt="1.5rem" w="20rem">Magic Number</Text>
-                <Input onChange={(e: any) => accountCtx.setNetworkMagic(e.target.value)}
-                       value={accountCtx.networkMagic}
-                       borderColor="#373d4a" borderRadius={0} bg="#1a202b"
-                       _placeholder={{color: '#373d4a'}} mt="0.5rem" w="20rem"
-                />
+                <Text fontSize="0.75rem" mt="1.5rem" w="20rem">Network Type</Text>
+                <Select onChange={(e: any) => accountCtx.setNetworkType(e.target.value)}
+                        value={accountCtx.networkType}
+                        borderColor="#373d4a" borderRadius={0} bg="#1a202b"
+                        mt="0.5rem" w="20rem" color="#999999">
+                    <option value="neo3:testnet">Testnet</option>
+                    <option value="neo3:mainnet">Mainnet</option>
+                    <option value="neo3:private">Private Network</option>
+                </Select>
+                {accountCtx.networkType === 'neo3:private' && <>
+                    <Text fontSize="0.75rem" mt="1.5rem" w="20rem">RPC Address</Text>
+                    <Input onChange={(e: any) => accountCtx.setPrivateRpcAddress(e.target.value)}
+                           value={accountCtx.privateRpcAddress}
+                           borderColor="#373d4a" borderRadius={0} bg="#1a202b"
+                           _placeholder={{color: '#373d4a'}} mt="0.5rem" w="20rem"
+                    />
+                </>}
                 <Button onClick={() => setChoseNetwork(true)} h="2.75rem" mt="1.5rem" bg="#373d4a" borderRadius={0} _hover={{bg: 'black'}}>
                     Continue</Button>
             </>
