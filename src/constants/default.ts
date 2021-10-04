@@ -11,10 +11,9 @@ export const DEFAULT_APP_METADATA = {
   icons: ["https://raw.githubusercontent.com/CityOfZion/visual-identity/develop/_CoZ%20Branding/_Logo/_Logo%20icon/_PNG%20200x178px/CoZ_Icon_DARKBLUE_200x178px.png"],
 };
 
-export const DEFAULT_CHAIN_ID = "neo3:testnet";
-
-export const DEFAULT_NEO_RPC_ADDRESS = "https://testnet1.neo.coz.io:443";
-export const DEFAULT_NEO_NETWORK_MAGIC = 877933390;
-
-// export const DEFAULT_NEO_RPC_ADDRESS =  "http://localhost:50012";
-// export const DEFAULT_NEO_NETWORK_MAGIC = 1911028336;
+export const DEFAULT_CHAIN = 'neo3:testnet'
+export const DEFAULT_NETWORKS = {
+  "neo3:testnet": "https://testnet1.neo.coz.io:443",
+  'neo3:mainnet': "http://seed1.neo.org:10332",
+  'neo3:private': null
+}
