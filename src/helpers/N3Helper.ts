@@ -1,125 +1,209 @@
-import Neon, {rpc, sc} from '@cityofzion/neon-js'
+import Neon, {rpc, sc, tx} from '@cityofzion/neon-js'
 import {Account} from '@cityofzion/neon-core/lib/wallet'
 import {JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
+import {ContractParam} from "@cityofzion/neon-core/lib/sc";
+import {WitnessScope} from "@cityofzion/neon-core/lib/tx/components/WitnessScope";
+
+type ContractInvocation = {
+  scriptHash: string
+  operation: string
+  args: any[]
+  abortOnFail?: boolean
+  scopes?: WitnessScope
+}
 
 export class N3Helper {
-    private readonly rpcAddress: string
-    private readonly networkMagic: number
+  private readonly rpcAddress: string
+  private readonly networkMagic: number
 
-    constructor(rpcAddress: string, networkMagic: number) {
-        this.rpcAddress = rpcAddress
-        this.networkMagic = networkMagic
+  constructor(rpcAddress: string, networkMagic: number) {
+    this.rpcAddress = rpcAddress
+    this.networkMagic = networkMagic
+  }
+
+  static init = async (rpcAddress: string, networkMagic?: number): Promise<N3Helper> => {
+    return new N3Helper(rpcAddress, networkMagic || (await N3Helper.getMagicOfRpcAddress(rpcAddress)))
+  }
+
+  static getMagicOfRpcAddress = async (rpcAddress: string): Promise<number> => {
+    const resp: any = await new rpc.RPCClient(rpcAddress).execute(Neon.create.query({
+      method: 'getversion',
+      params: [],
+      id: 1,
+      jsonrpc: "2.0"
+    }));
+
+    return resp.protocol.network
+  }
+
+  rpcCall = async (account: Account | undefined, request: JsonRpcRequest): Promise<JsonRpcResponse> => {
+    let result: any
+
+    if (request.method === 'invokefunction') {
+      if (!account) {
+        throw new Error("No account")
+      }
+
+      result = await this.contractInvoke(account, request.params[0]);
+
+    } else if (request.method === 'testInvoke') {
+      if (!account) {
+        throw new Error("No account")
+      }
+
+      result = await this.testInvoke(account, request.params[0]);
+
+    } else if (request.method === 'multiInvoke') {
+      if (!account) {
+        throw new Error("No account")
+      }
+
+      result = await this.multiInvoke(account, request.params);
+
+    } else if (request.method === 'multiTestInvoke') {
+      if (!account) {
+        throw new Error("No account")
+      }
+
+      result = await this.multiTestInvoke(account, request.params);
+
+    } else {
+
+      const {jsonrpc, ...queryLike} = request
+      result = await new rpc.RPCClient(this.rpcAddress).execute(Neon.create.query({...queryLike, jsonrpc: "2.0"}));
+
     }
 
-    static init = async (rpcAddress: string, networkMagic?: number): Promise<N3Helper> => {
-        return new N3Helper(rpcAddress, networkMagic || (await N3Helper.getMagicOfRpcAddress(rpcAddress)))
+    return {
+      id: request.id,
+      jsonrpc: "2.0",
+      result
     }
+  }
 
-    static getMagicOfRpcAddress = async (rpcAddress: string): Promise<number> => {
-        const resp: any = await new rpc.RPCClient(rpcAddress).execute(Neon.create.query({
-            method: 'getversion',
-            params: [],
-            id: 1,
-            jsonrpc: "2.0"
-        }));
+  contractInvoke = async (account: Account, call: ContractInvocation): Promise<any> => {
+    const contract = new Neon.experimental.SmartContract(
+      Neon.u.HexString.fromHex(call.scriptHash),
+      {
+        networkMagic: this.networkMagic,
+        rpcAddress: this.rpcAddress,
+        account: account,
+      }
+    );
 
-        return resp.network
+    const convertedArgs = N3Helper.convertParams(call.args)
+
+    try {
+      return await contract.invoke(call.operation, convertedArgs, [new tx.Signer({
+        account: account.scriptHash,
+        scopes: call.scopes ?? WitnessScope.CalledByEntry
+      })])
+    } catch (e) {
+      return N3Helper.convertError(e)
     }
+  }
 
-    rpcCall = async (account: Account | undefined, request: JsonRpcRequest): Promise<JsonRpcResponse> => {
-        let result: any
+  testInvoke = async (account: Account, call: ContractInvocation): Promise<any> => {
+    const convertedArgs = N3Helper.convertParams(call.args)
 
-        if (request.method === 'invokefunction') {
-            if (!account) {
-                throw new Error("No account")
-            }
-
-            result = await this.contractInvoke(
-              account,
-              request.params[0] as string,
-              request.params[1] as string,
-              ...N3Helper.getInnerParams(request.params));
-
-        } else if (request.method === 'testInvoke') {
-
-            result = await this.testInvoke(
-              request.params[0] as string,
-              request.params[1] as string,
-              ...N3Helper.getInnerParams(request.params));
-
-        } else {
-
-            const {jsonrpc, ...queryLike} = request
-            result = await new rpc.RPCClient(this.rpcAddress).execute(Neon.create.query({...queryLike, jsonrpc: "2.0"}));
-
-        }
-
-        return {
-            id: request.id,
-            jsonrpc: "2.0",
-            result
-        }
+    try {
+      return await new rpc.RPCClient(this.rpcAddress).invokeFunction(
+        call.scriptHash,
+        call.operation,
+        convertedArgs,
+        [new tx.Signer({
+          account: account.scriptHash,
+          scopes: call.scopes ?? WitnessScope.CalledByEntry
+        })])
+    } catch (e) {
+      return N3Helper.convertError(e)
     }
+  }
 
-    contractInvoke = async (account: Account, scriptHash: string, operation: string, ...args: any[]): Promise<any> => {
-        const contract = new Neon.experimental.SmartContract(
-          Neon.u.HexString.fromHex(scriptHash),
-          {
-              networkMagic: this.networkMagic,
-              rpcAddress: this.rpcAddress,
-              account: account,
-          }
-        );
+  multiTestInvoke = async (account: Account, calls: ContractInvocation[]): Promise<any> => {
+    const sb = Neon.create.scriptBuilder();
 
-        const convertedArgs = N3Helper.convertParams(args)
+    calls.forEach((c) => {
+      sb.emitContractCall({
+        scriptHash: c.scriptHash,
+        operation: c.operation,
+        args: N3Helper.convertParams(c.args)
+      })
 
-        try {
-            return await contract.invoke(operation, convertedArgs)
-        } catch (e) {
-            return N3Helper.convertError(e)
-        }
-    }
+      if (c.abortOnFail) {
+        sb.emit(0x39)
+      }
+    })
 
-    testInvoke = async (scriptHash: string, operation: string, ...args: any[]): Promise<any> => {
-        const contract = new Neon.experimental.SmartContract(
-          Neon.u.HexString.fromHex(scriptHash),
-          {
-              networkMagic: this.networkMagic,
-              rpcAddress: this.rpcAddress,
-          }
-        );
+    const script = sb.build()
+    return await new rpc.RPCClient(this.rpcAddress).invokeScript(
+      Neon.u.HexString.fromHex(script), [new tx.Signer({
+        account: account.scriptHash,
+        scopes: N3Helper.pickOneScopeFromMulti(calls)
+      })])
+  }
 
-        const convertedArgs = N3Helper.convertParams(args)
+  multiInvoke = async (account: Account, calls: ContractInvocation[]): Promise<any> => {
+    const sb = Neon.create.scriptBuilder();
 
-        try {
-            return await contract.testInvoke(operation, convertedArgs)
-        } catch (e) {
-            return N3Helper.convertError(e)
-        }
-    }
+    calls.forEach((c) => {
+      sb.emitContractCall({
+        scriptHash: c.scriptHash,
+        operation: c.operation,
+        args: N3Helper.convertParams(c.args)
+      })
 
-    private static convertParams (args: any[]): any[] {
-        return args.map(a => (
-          a.value === undefined ? a :
-            a.type === 'Address'
-              ? sc.ContractParam.hash160(a.value)
-              : a.type === 'ScriptHash'
-              ? sc.ContractParam.hash160(Neon.u.HexString.fromHex(a.value))
-              : a.type === 'Array'
-                ? sc.ContractParam.array(...N3Helper.convertParams(a.value))
-                : a
-        ))
-    }
+      if (c.abortOnFail) {
+        sb.emit(0x39)
+      }
+    })
 
-    private static getInnerParams(p: any[]) {
-        let params: any[] = []
-        if (p.length > 2) {
-            params = p[2]
-        }
-        return params;
-    }
+    const script = sb.build()
 
-    private static convertError(e) {
-        return {error: {message: e.message, ...e}};
-    }
+    const rpcClient = new rpc.RPCClient(this.rpcAddress)
+
+    const currentHeight = await rpcClient.getBlockCount();
+
+    const trx = new tx.Transaction({
+      script: Neon.u.HexString.fromHex(script),
+      validUntilBlock: currentHeight + 100,
+      signers: [new tx.Signer({
+        account: account.scriptHash,
+        scopes: N3Helper.pickOneScopeFromMulti(calls)
+      })]
+    })
+
+    console.log(trx)
+
+    await Neon.experimental.txHelpers.addFees(trx, {
+      rpcAddress: this.rpcAddress,
+      networkMagic: this.networkMagic,
+      account
+    })
+
+    trx.sign(account, this.networkMagic)
+
+    return await rpcClient.sendRawTransaction(trx)
+  }
+
+  private static convertParams(args: any[]): ContractParam[] {
+    return args.map(a => (
+      a.value === undefined ? a :
+        a.type === 'Address'
+          ? sc.ContractParam.hash160(a.value)
+          : a.type === 'ScriptHash'
+          ? sc.ContractParam.hash160(Neon.u.HexString.fromHex(a.value))
+          : a.type === 'Array'
+            ? sc.ContractParam.array(...N3Helper.convertParams(a.value))
+            : a
+    ))
+  }
+
+  private static pickOneScopeFromMulti(calls: ContractInvocation[]): WitnessScope {
+    return calls.reduce<WitnessScope>((prev, c) => Math.max(prev, c.scopes ?? WitnessScope.CalledByEntry), WitnessScope.None)
+  }
+
+  private static convertError(e) {
+    return {error: {message: e.message, ...e}};
+  }
 }

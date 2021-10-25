@@ -25,9 +25,9 @@ export default function App(): any {
   }, [walletConnectCtx.sessions])
 
   useEffect(() => {
-    // if the request method is 'testInvoke' we auto-accept it
+    // if the request method is 'testInvoke' or 'multiTestInvoke' we auto-accept it
     walletConnectCtx.autoAcceptIntercept((acc, chain, req: JsonRpcRequest) =>
-      req.method === 'testInvoke')
+      req.method === 'testInvoke' || req.method === 'multiTestInvoke')
 
     walletConnectCtx.onRequestListener(async (acc, chain, req: JsonRpcRequest) =>
       await (await N3Helper.init(DEFAULT_NETWORKS[chain] || accountCtx.privateRpcAddress)).rpcCall(accountCtx.account, req))

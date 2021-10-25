@@ -48,18 +48,18 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
           <Text fontSize="0.875rem" color="#888888" fontWeight="bold" mt="0.875rem">Arguments</Text>
           {request.params?.map((p: any, i: number) => (<>
               <Flex key={i} mt="0.5rem">
-                <Box minW="1.75rem" h="1.75rem" pt="0.08rem" textAlign="center" bg="#373d4a" borderRadius="100%">
+                <Box h="1.75rem" pt="0.08rem" px={"0.6rem"} textAlign="center" bg="#373d4a" borderRadius="0.875rem">
                   {i.toString(10)}
                 </Box>
-                <Text ml="0.5rem" title={typeof p === 'object' ? 'Array' : p.toString()}>
-                  {typeof p === 'object' ? 'Array/Dictionary' : p.toString()}
+                <Text ml="0.5rem">
+                  {typeof p === 'object' ? '' : (typeof p === 'number' ? p + 1 : p.toString())}
                 </Text>
               </Flex>
               {typeof p === 'object' && (
                 <Flex direction="column" borderLeft="solid 1px #373d4a" ml="0.875rem" pl="0.875rem">
                   {Object.keys(p).map((k: string) => (
                     <Flex key={k} mt="0.5rem">
-                      <Box minW="1.75rem" h="1.75rem" pt="0.08rem" textAlign="center" bg="#373d4a" borderRadius="100%">
+                      <Box h="1.75rem" pt="0.08rem" px={"0.6rem"} textAlign="center" bg="#373d4a" borderRadius="0.875rem">
                         {k}
                       </Box>
                       <Text ml="0.5rem" title={p[k] && (typeof p[k] !== 'object' ? p[k].toString() : JSON.stringify(p[k]))}>
