@@ -68,8 +68,6 @@ workflows:
               ignore: /.*/
       - approve-release:
           type: approval
-          requires:
-            - test
           filters:
             tags:
               only: /^v.*/
