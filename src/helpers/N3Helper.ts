@@ -6,7 +6,7 @@ import {WitnessScope} from "@cityofzion/neon-core/lib/tx/components/WitnessScope
 import {HexString} from "@cityofzion/neon-core/lib/u";
 
 export type Signer = {
-  scopes: WitnessScope
+  scope: WitnessScope
   allowedContracts?: string[]
   allowedGroups?: string[]
 }
@@ -204,7 +204,7 @@ export class N3Helper {
       const allowedContractsSet = new Set<HexString>()
       const allowedGroupsSet = new Set<HexString>()
       call.forEach((c) => {
-        signer.scopes = Math.max(signer.scopes, c.signer?.scopes ?? WitnessScope.CalledByEntry)
+        signer.scopes = Math.max(signer.scopes, c.signer?.scope ?? WitnessScope.CalledByEntry)
         c.signer?.allowedContracts?.forEach((ac) => {
           allowedContractsSet.add(Neon.u.HexString.fromHex(ac))
         })
@@ -220,7 +220,7 @@ export class N3Helper {
       }
 
     } else {
-      signer.scopes = call.signer?.scopes ?? WitnessScope.CalledByEntry
+      signer.scopes = call.signer?.scope ?? WitnessScope.CalledByEntry
       if (call.signer?.allowedContracts) {
         signer.allowedContracts = call.signer.allowedContracts.map((ac) => Neon.u.HexString.fromHex(ac))
       }
