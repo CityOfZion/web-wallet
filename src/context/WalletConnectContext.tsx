@@ -1,7 +1,7 @@
 import React, {useCallback, useContext, useEffect, useState} from 'react';
 import Client, {CLIENT_EVENTS} from "@walletconnect/client";
 import {AppMetadata, SessionTypes} from "@walletconnect/types";
-import {ERROR, getAppMetadata} from "@walletconnect/utils";
+import {ERROR} from "@walletconnect/utils";
 import KeyValueStorage from "keyvaluestorage";
 import {formatJsonRpcError, JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
 
@@ -308,7 +308,7 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
     });
     const response = {
       state: {accounts: accs},
-      metadata: getAppMetadata() || options.appMetadata,
+      metadata: options.appMetadata,
     };
     const session = await wcClient.approve({proposal, response});
     setSessionProposals((old) => old.filter(i => i !== proposal))
