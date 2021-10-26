@@ -61,14 +61,24 @@ workflows:
       - deploy-develop:
           context: aws
           filters:
-            branches:
-              only:
-                - develop
             tags:
               only:
-                - /.*/
+                - dev
+            branches:
+              ignore: /.*/
+      - approve-release:
+          type: approval
+          requires:
+            - test
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - deploy-production:
           context: aws
+          requires:
+            - approve-release
           filters:
             tags:
               only: /^v.*/
