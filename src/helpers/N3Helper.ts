@@ -3,13 +3,20 @@ import {Account} from '@cityofzion/neon-core/lib/wallet'
 import {JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
 import {ContractParam} from "@cityofzion/neon-core/lib/sc";
 import {WitnessScope} from "@cityofzion/neon-core/lib/tx/components/WitnessScope";
+import {HexString} from "@cityofzion/neon-core/lib/u";
 
-type ContractInvocation = {
+export type Signer = {
+  scopes: WitnessScope
+  allowedContracts?: string[]
+  allowedGroups?: string[]
+}
+
+export type ContractInvocation = {
   scriptHash: string
   operation: string
   args: any[]
   abortOnFail?: boolean
-  scopes?: WitnessScope
+  signer?: Signer
 }
 
 export class N3Helper {
@@ -94,10 +101,7 @@ export class N3Helper {
     const convertedArgs = N3Helper.convertParams(call.args)
 
     try {
-      return await contract.invoke(call.operation, convertedArgs, [new tx.Signer({
-        account: account.scriptHash,
-        scopes: call.scopes ?? WitnessScope.CalledByEntry
-      })])
+      return await contract.invoke(call.operation, convertedArgs, [N3Helper.buildSigner(account, call)])
     } catch (e) {
       return N3Helper.convertError(e)
     }
@@ -111,10 +115,7 @@ export class N3Helper {
         call.scriptHash,
         call.operation,
         convertedArgs,
-        [new tx.Signer({
-          account: account.scriptHash,
-          scopes: call.scopes ?? WitnessScope.CalledByEntry
-        })])
+        [N3Helper.buildSigner(account, call)])
     } catch (e) {
       return N3Helper.convertError(e)
     }
@@ -137,10 +138,7 @@ export class N3Helper {
 
     const script = sb.build()
     return await new rpc.RPCClient(this.rpcAddress).invokeScript(
-      Neon.u.HexString.fromHex(script), [new tx.Signer({
-        account: account.scriptHash,
-        scopes: N3Helper.pickOneScopeFromMulti(calls)
-      })])
+      Neon.u.HexString.fromHex(script), [N3Helper.buildSigner(account, calls)])
   }
 
   multiInvoke = async (account: Account, calls: ContractInvocation[]): Promise<any> => {
@@ -167,10 +165,7 @@ export class N3Helper {
     const trx = new tx.Transaction({
       script: Neon.u.HexString.fromHex(script),
       validUntilBlock: currentHeight + 100,
-      signers: [new tx.Signer({
-        account: account.scriptHash,
-        scopes: N3Helper.pickOneScopeFromMulti(calls)
-      })]
+      signers: [N3Helper.buildSigner(account, calls)]
     })
 
     console.log(trx)
@@ -199,8 +194,42 @@ export class N3Helper {
     ))
   }
 
-  private static pickOneScopeFromMulti(calls: ContractInvocation[]): WitnessScope {
-    return calls.reduce<WitnessScope>((prev, c) => Math.max(prev, c.scopes ?? WitnessScope.CalledByEntry), WitnessScope.None)
+  private static buildSigner(account: Account, call: ContractInvocation | ContractInvocation[]) {
+    const signer = new tx.Signer({
+      account: account.scriptHash
+    })
+
+    if (Array.isArray(call)) {
+      signer.scopes = WitnessScope.None
+      const allowedContractsSet = new Set<HexString>()
+      const allowedGroupsSet = new Set<HexString>()
+      call.forEach((c) => {
+        signer.scopes = Math.max(signer.scopes, c.signer?.scopes ?? WitnessScope.CalledByEntry)
+        c.signer?.allowedContracts?.forEach((ac) => {
+          allowedContractsSet.add(Neon.u.HexString.fromHex(ac))
+        })
+        c.signer?.allowedGroups?.forEach((ac) => {
+          allowedGroupsSet.add(Neon.u.HexString.fromHex(ac))
+        })
+      })
+      if (allowedContractsSet.size) {
+        signer.allowedContracts = Array.from(allowedContractsSet)
+      }
+      if (allowedGroupsSet.size) {
+        signer.allowedGroups = Array.from(allowedGroupsSet)
+      }
+
+    } else {
+      signer.scopes = call.signer?.scopes ?? WitnessScope.CalledByEntry
+      if (call.signer?.allowedContracts) {
+        signer.allowedContracts = call.signer.allowedContracts.map((ac) => Neon.u.HexString.fromHex(ac))
+      }
+      if (call.signer?.allowedGroups) {
+        signer.allowedGroups = call.signer.allowedGroups.map((ac) => Neon.u.HexString.fromHex(ac))
+      }
+    }
+
+    return signer
   }
 
   private static convertError(e) {
