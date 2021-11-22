@@ -3,7 +3,6 @@ import {Account} from '@cityofzion/neon-core/lib/wallet'
 import {JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
 import {ContractParam} from "@cityofzion/neon-core/lib/sc";
 import {WitnessScope} from "@cityofzion/neon-core/lib/tx/components/WitnessScope";
-import {HexString} from "@cityofzion/neon-core/lib/u";
 
 export type Signer = {
   scope: WitnessScope
@@ -17,6 +16,11 @@ export type ContractInvocation = {
   args: any[]
   abortOnFail?: boolean
   signer?: Signer
+}
+
+export type ContractInvocationMulti = {
+  signer: Signer[]
+  invocations: ContractInvocation[]
 }
 
 export class N3Helper {
@@ -101,7 +105,7 @@ export class N3Helper {
     const convertedArgs = N3Helper.convertParams(call.args)
 
     try {
-      return await contract.invoke(call.operation, convertedArgs, [N3Helper.buildSigner(account, call)])
+      return await contract.invoke(call.operation, convertedArgs, [N3Helper.buildSigner(account, call.signer)])
     } catch (e) {
       return N3Helper.convertError(e)
     }
@@ -115,16 +119,16 @@ export class N3Helper {
         call.scriptHash,
         call.operation,
         convertedArgs,
-        [N3Helper.buildSigner(account, call)])
+        [N3Helper.buildSigner(account, call.signer)])
     } catch (e) {
       return N3Helper.convertError(e)
     }
   }
 
-  multiTestInvoke = async (account: Account, calls: ContractInvocation[]): Promise<any> => {
+  multiTestInvoke = async (account: Account, cim: ContractInvocationMulti): Promise<any> => {
     const sb = Neon.create.scriptBuilder();
 
-    calls.forEach((c) => {
+    cim.invocations.forEach((c) => {
       sb.emitContractCall({
         scriptHash: c.scriptHash,
         operation: c.operation,
@@ -138,13 +142,13 @@ export class N3Helper {
 
     const script = sb.build()
     return await new rpc.RPCClient(this.rpcAddress).invokeScript(
-      Neon.u.HexString.fromHex(script), [N3Helper.buildSigner(account, calls)])
+      Neon.u.HexString.fromHex(script), N3Helper.buildMultipleSigner(account, cim.signer))
   }
 
-  multiInvoke = async (account: Account, calls: ContractInvocation[]): Promise<any> => {
+  multiInvoke = async (account: Account, cim: ContractInvocationMulti): Promise<any> => {
     const sb = Neon.create.scriptBuilder();
 
-    calls.forEach((c) => {
+    cim.invocations.forEach((c) => {
       sb.emitContractCall({
         scriptHash: c.scriptHash,
         operation: c.operation,
@@ -165,7 +169,7 @@ export class N3Helper {
     const trx = new tx.Transaction({
       script: Neon.u.HexString.fromHex(script),
       validUntilBlock: currentHeight + 100,
-      signers: [N3Helper.buildSigner(account, calls)]
+      signers: N3Helper.buildMultipleSigner(account, cim.signer)
     })
 
     console.log(trx)
@@ -194,42 +198,24 @@ export class N3Helper {
     ))
   }
 
-  private static buildSigner(account: Account, call: ContractInvocation | ContractInvocation[]) {
+  private static buildSigner(account: Account, signerEntry?: Signer) {
     const signer = new tx.Signer({
       account: account.scriptHash
     })
 
-    if (Array.isArray(call)) {
-      signer.scopes = WitnessScope.None
-      const allowedContractsSet = new Set<HexString>()
-      const allowedGroupsSet = new Set<HexString>()
-      call.forEach((c) => {
-        signer.scopes = Math.max(signer.scopes, c.signer?.scope ?? WitnessScope.CalledByEntry)
-        c.signer?.allowedContracts?.forEach((ac) => {
-          allowedContractsSet.add(Neon.u.HexString.fromHex(ac))
-        })
-        c.signer?.allowedGroups?.forEach((ac) => {
-          allowedGroupsSet.add(Neon.u.HexString.fromHex(ac))
-        })
-      })
-      if (allowedContractsSet.size) {
-        signer.allowedContracts = Array.from(allowedContractsSet)
-      }
-      if (allowedGroupsSet.size) {
-        signer.allowedGroups = Array.from(allowedGroupsSet)
-      }
-
-    } else {
-      signer.scopes = call.signer?.scope ?? WitnessScope.CalledByEntry
-      if (call.signer?.allowedContracts) {
-        signer.allowedContracts = call.signer.allowedContracts.map((ac) => Neon.u.HexString.fromHex(ac))
-      }
-      if (call.signer?.allowedGroups) {
-        signer.allowedGroups = call.signer.allowedGroups.map((ac) => Neon.u.HexString.fromHex(ac))
-      }
+    signer.scopes = signerEntry?.scope ?? WitnessScope.CalledByEntry
+    if (signerEntry?.allowedContracts) {
+      signer.allowedContracts = signerEntry.allowedContracts.map((ac) => Neon.u.HexString.fromHex(ac))
+    }
+    if (signerEntry?.allowedGroups) {
+      signer.allowedGroups = signerEntry.allowedGroups.map((ac) => Neon.u.HexString.fromHex(ac))
     }
 
     return signer
+  }
+
+  private static buildMultipleSigner(account: Account, signers: Signer[]) {
+    return !signers.length ? [N3Helper.buildSigner(account)] : signers.map((s) => N3Helper.buildSigner(account, s))
   }
 
   private static convertError(e) {
