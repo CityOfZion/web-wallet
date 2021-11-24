@@ -1,6 +1,13 @@
 export const DEFAULT_RELAY_PROVIDER = "wss://relay.walletconnect.org";
 
-export const DEFAULT_METHODS = ["invokefunction", "testInvoke", "multiInvoke", "multiTestInvoke"];
+export const DEFAULT_METHODS = [
+  "invokefunction",
+  "testInvoke",
+  "multiInvoke",
+  "multiTestInvoke",
+  "signMessage",
+  "verifyMessage"
+];
 
 export const DEFAULT_LOGGER = "debug";
 

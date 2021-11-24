@@ -1,8 +1,9 @@
-import Neon, {rpc, sc, tx} from '@cityofzion/neon-js'
+import Neon, {rpc, sc, tx, wallet, u} from '@cityofzion/neon-js'
 import {Account} from '@cityofzion/neon-core/lib/wallet'
 import {JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
 import {ContractParam} from "@cityofzion/neon-core/lib/sc";
 import {WitnessScope} from "@cityofzion/neon-core/lib/tx/components/WitnessScope";
+import {randomBytes} from "crypto";
 
 export type Signer = {
   scope: WitnessScope
@@ -21,6 +22,13 @@ export type ContractInvocation = {
 export type ContractInvocationMulti = {
   signer: Signer[]
   invocations: ContractInvocation[]
+}
+
+export type SignedMessage = {
+  publicKey: string
+  data: string
+  salt: string
+  messageHex: string
 }
 
 export class N3Helper {
@@ -78,6 +86,15 @@ export class N3Helper {
 
       result = await this.multiTestInvoke(account, request.params);
 
+    } else if (request.method === 'signMessage') {
+      if (!account) {
+        throw new Error("No account")
+      }
+
+      result = await this.signMessage(account, request.params);
+
+    } else if (request.method === 'verifyMessage') {
+      result = await this.verifyMessage(request.params);
     } else {
 
       const {jsonrpc, ...queryLike} = request
@@ -183,6 +200,24 @@ export class N3Helper {
     trx.sign(account, this.networkMagic)
 
     return await rpcClient.sendRawTransaction(trx)
+  }
+
+  signMessage = (account: Account, message: string): SignedMessage => {
+    const salt = randomBytes(16).toString('hex')
+    const parameterHexString = u.str2hexstring(salt + message)
+    const lengthHex = u.num2VarInt(parameterHexString.length / 2)
+    const messageHex = `010001f0${lengthHex}${parameterHexString}0000`
+
+    return {
+      publicKey: account.publicKey,
+      data: wallet.sign(messageHex, account.privateKey),
+      salt,
+      messageHex
+    }
+  }
+
+  verifyMessage = (verifyArgs: SignedMessage): boolean => {
+    return wallet.verify(verifyArgs.messageHex, verifyArgs.data, verifyArgs.publicKey)
   }
 
   private static convertParams(args: any[]): ContractParam[] {

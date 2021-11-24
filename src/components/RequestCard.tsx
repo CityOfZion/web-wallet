@@ -31,7 +31,10 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
     props.closeRequest()
   }
 
-  const items = request.params.invocations ? request.params.invocations : request.params
+  const items = Array.isArray(request.params) ? request.params
+    : (request.params.invocations ? request.params.invocations
+      : [request.params]
+    )
 
   return (
     <Flex direction="column" align="center" {...props}>
