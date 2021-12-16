@@ -6,10 +6,12 @@ export const DEFAULT_METHODS = [
   "multiInvoke",
   "multiTestInvoke",
   "signMessage",
-  "verifyMessage"
+  "verifyMessage",
+  "getapplicationlog"
 ];
+export const DEFAULT_AUTOACCEPT_METHODS = ["testInvoke", "multiTestInvoke", "verifyMessage", "getapplicationlog"];
 
-export const DEFAULT_LOGGER = "debug";
+export const DEFAULT_LOGGER = "error";
 
 export const DEFAULT_APP_METADATA = {
   name: "CoZ Wallet Prototype",

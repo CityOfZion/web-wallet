@@ -95,6 +95,10 @@ export class N3Helper {
 
     } else if (request.method === 'verifyMessage') {
       result = await this.verifyMessage(request.params);
+    } else if (request.method === 'getapplicationlog') {
+
+      result = await new rpc.RPCClient(this.rpcAddress).getApplicationLog(request.params[0])
+
     } else {
 
       const {jsonrpc, ...queryLike} = request
@@ -116,6 +120,7 @@ export class N3Helper {
         networkMagic: this.networkMagic,
         rpcAddress: this.rpcAddress,
         account: account,
+        systemFeeOverride: Neon.u.BigInteger.fromDecimal(10, 8)
       }
     );
 

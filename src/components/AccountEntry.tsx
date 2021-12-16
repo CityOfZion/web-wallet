@@ -18,7 +18,6 @@ export default function AccountEntry(props: DividerProps): any {
 
     const setAccount = (acc: Account) => {
         accountCtx.setAccount(acc);
-        walletConnectCtx.addAccountAndChain(acc.address, accountCtx.networkType)
     }
 
     const loadAccountFromStorage = useCallback(async (storage: KeyValueStorage) => {

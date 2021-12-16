@@ -12,7 +12,7 @@ import ConnectDapp from "./components/ConnectDapp";
 import {SessionTypes} from "@walletconnect/types";
 import {JsonRpcRequest} from "@json-rpc-tools/utils";
 import {N3Helper} from "./helpers/N3Helper";
-import {DEFAULT_NETWORKS} from "./constants";
+import {DEFAULT_AUTOACCEPT_METHODS, DEFAULT_NETWORKS} from "./constants";
 
 export default function App(): any {
   const walletConnectCtx = useWalletConnect()
@@ -27,11 +27,11 @@ export default function App(): any {
   useEffect(() => {
     // if the request method is 'testInvoke' or 'multiTestInvoke' we auto-accept it
     walletConnectCtx.autoAcceptIntercept((acc, chain, req: JsonRpcRequest) =>
-      req.method === 'testInvoke' || req.method === 'multiTestInvoke' || req.method === 'verifyMessage')
+      DEFAULT_AUTOACCEPT_METHODS.includes(req.method))
 
     walletConnectCtx.onRequestListener(async (acc, chain, req: JsonRpcRequest) =>
       await (await N3Helper.init(DEFAULT_NETWORKS[chain] || accountCtx.privateRpcAddress)).rpcCall(accountCtx.account, req))
-  }, [accountCtx.account])
+  }, [accountCtx.account, accountCtx.privateRpcAddress])
 
   return (
     <Flex direction="column" w="100vw" minH="100vh" bgImage="url(/bg.png)" color="white">
