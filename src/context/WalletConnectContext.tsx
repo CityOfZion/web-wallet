@@ -176,19 +176,6 @@ export const WalletConnectContextProvider: React.FC<{
     console.log('ACTION', 'CLEAR STORAGE', storage?.getKeys())
   }
 
-  const clearStorage = async () => {
-    const itemsToRemove: string[] = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const wcVal = localStorage.key(i)
-      if (wcVal?.substring(0, 2) === 'wc') {
-        itemsToRemove.push(wcVal)
-      }
-    }
-    for (let i = 0; i < itemsToRemove.length; i++) {
-      localStorage.removeItem(itemsToRemove[i])
-    }
-  }
-
   const checkPersistedState = useCallback(async () => {
     if (typeof wcClient === 'undefined') {
       throw new Error('Client is not initialized')
