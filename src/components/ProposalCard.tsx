@@ -2,10 +2,19 @@ import * as React from "react";
 import Peer from "../components/Peer";
 import {Button, DividerProps, Flex, Image, Spacer, Text} from "@chakra-ui/react";
 import {useWalletConnect} from "../context/WalletConnectContext";
+import {useAccountContext} from "../context/AccountContext";
 
 export default function ProposalCard(props: DividerProps): any {
   const walletConnectCtx = useWalletConnect()
+  const accountCtx = useAccountContext()
   const firstProposal = walletConnectCtx.sessionProposals[0]
+
+  const approveSession = async () => {
+    await walletConnectCtx.approveSession(firstProposal, [{
+      address: accountCtx.account?.address ?? '',
+      chain: accountCtx.networkType
+    }])
+  }
 
   return (
     <Flex direction="column" align="center" {...props}>
@@ -33,7 +42,7 @@ export default function ProposalCard(props: DividerProps): any {
           ) : null}
           </Flex>
           <Flex mt="0.75rem">
-            <Button flex={1} onClick={() => walletConnectCtx.approveSession(firstProposal)}
+            <Button flex={1} onClick={approveSession}
                     bg="black" borderRadius={0} _hover={{bg: '#111'}}>
               Approve
             </Button>
