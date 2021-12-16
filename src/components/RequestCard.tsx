@@ -31,6 +31,11 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
     props.closeRequest()
   }
 
+  const items = Array.isArray(request.params) ? request.params
+    : (request.params.invocations ? request.params.invocations
+      : [request.params]
+    )
+
   return (
     <Flex direction="column" align="center" {...props}>
       <Spacer/>
@@ -46,7 +51,7 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
           <Text fontSize="0.875rem" color="#888888" fontWeight="bold" mt="0.875rem">Method</Text>
           <Text fontSize="0.875rem" mt="0.5rem">{request.method}</Text>
           <Text fontSize="0.875rem" color="#888888" fontWeight="bold" mt="0.875rem">Arguments</Text>
-          {request.params?.map((p: any, i: number) => (<>
+          {items?.map((p: any, i: number) => (<>
               <Flex key={i} mt="0.5rem">
                 <Box h="1.75rem" pt="0.08rem" px={"0.6rem"} textAlign="center" bg="#373d4a" borderRadius="0.875rem">
                   {i.toString(10)}

@@ -100,6 +100,7 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
     } catch (e) {
       // ignored
     }
+    await clearStorage()
 
     setWcClient(undefined)
     setSessionProposals([])
@@ -109,6 +110,19 @@ export const WalletConnectContextProvider: React.FC<{ options: CtxOptions, child
     setSessions([])
     setRequests([])
     setResults([])
+  }
+
+  const clearStorage = async () => {
+    const itemsToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const wcVal = localStorage.key(i)
+      if (wcVal?.substring(0, 2) === 'wc') {
+        itemsToRemove.push(wcVal)
+      }
+    }
+    for (let i = 0; i < itemsToRemove.length; i++) {
+      localStorage.removeItem(itemsToRemove[i])
+    }
   }
 
   const checkPersistedState = useCallback(async () => {
