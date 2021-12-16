@@ -120,7 +120,7 @@ export class N3Helper {
         networkMagic: this.networkMagic,
         rpcAddress: this.rpcAddress,
         account: account,
-        systemFeeOverride: Neon.u.BigInteger.fromDecimal(10, 8)
+        // systemFeeOverride: Neon.u.BigInteger.fromDecimal(10, 8)
       }
     );
 
