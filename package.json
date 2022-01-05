@@ -1,15 +1,8 @@
 {
-  "name": "walletconnect-v2-react-wallet",
+  "name": "web-wallet",
   "version": "2.0.0-beta.17",
   "private": true,
-  "keywords": [
-    "walletconnect",
-    "neo",
-    "web3",
-    "crypto"
-  ],
-  "author": "WalletConnect Labs <walletconnectlabs.com>",
-  "license": "LGPL-3.0",
+  "author": "COZ, Inc.",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -21,10 +14,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/walletconnect-labs/walletconnect-v2-monorepo.git"
+    "url": "git+https://github.com/CityOfZion/web-wallet.git"
   },
   "bugs": {
-    "url": "https://github.com/walletconnect-labs/walletconnect-v2-monorepo/issues"
+    "url": "https://github.com/CityOfZion/web-wallet/issues"
   },
   "dependencies": {
     "@chakra-ui/icons": "^1.0.13",
