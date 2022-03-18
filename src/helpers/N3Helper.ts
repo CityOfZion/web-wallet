@@ -186,8 +186,6 @@ export class N3Helper {
     const salt = randomBytes(16).toString('hex')
     const messageHex = u.str2hexstring(message)
 
-    console.log(messageHex, account.privateKey, salt)
-
     return {
       publicKey: account.publicKey,
       data: wallet.sign(messageHex, account.privateKey, salt),
