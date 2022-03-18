@@ -156,7 +156,19 @@ export class N3Helper {
     return await rpcClient.sendRawTransaction(trx)
   }
 
-  signMessage = (account: Account, message: string): SignedMessage => {
+  signMessage = (account: Account, message: string | {message: string, legacy: boolean}): SignedMessage => {
+    if (message instanceof Object) {
+      if (!message.legacy) {
+        return this.signMessageNew(account, message.message)
+      } else {
+        return this.signMessageLegacy(account, message.message)
+      }
+    } else {
+      return this.signMessageLegacy(account, message)
+    }
+  }
+
+  signMessageLegacy = (account: Account, message: string): SignedMessage => {
     const salt = randomBytes(16).toString('hex')
     const parameterHexString = u.str2hexstring(salt + message)
     const lengthHex = u.num2VarInt(parameterHexString.length / 2)
@@ -165,6 +177,20 @@ export class N3Helper {
     return {
       publicKey: account.publicKey,
       data: wallet.sign(messageHex, account.privateKey),
+      salt,
+      messageHex
+    }
+  }
+
+  signMessageNew = (account: Account, message: string): SignedMessage => {
+    const salt = randomBytes(16).toString('hex')
+    const messageHex = u.str2hexstring(message)
+
+    console.log(messageHex, account.privateKey, salt)
+
+    return {
+      publicKey: account.publicKey,
+      data: wallet.sign(messageHex, account.privateKey, salt),
       salt,
       messageHex
     }

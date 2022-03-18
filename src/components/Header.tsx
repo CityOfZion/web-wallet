@@ -17,7 +17,7 @@ export default function Header(): any {
     const logout = async () => {
         accountCtx.setAccountPassword(undefined)
         accountCtx.setAccountDecripted(false)
-        await walletConnectCtx.resetApp()
+        await walletConnectCtx.cleanConnections()
     }
 
     const ellipseAddress = (address = "", width = 10) => {
