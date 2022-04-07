@@ -3,9 +3,8 @@ import {
   JsonRpcRequest,
   JsonRpcResponse,
 } from '@json-rpc-tools/utils'
-import Client, {CLIENT_EVENTS} from '@walletconnect/client'
-import {AppMetadata, SessionTypes} from '@walletconnect/types'
-import {ERROR} from '@walletconnect/utils'
+import WalletConnectClient, { CLIENT_EVENTS } from '@walletconnect/client'
+import {AppMetadata, SessionTypes} from "@walletconnect/types";
 import KeyValueStorage from 'keyvaluestorage'
 import {KeyValueStorageOptions} from 'keyvaluestorage/dist/cjs/shared'
 import PropTypes from 'prop-types'
@@ -28,8 +27,8 @@ type AutoAcceptCallback = (
 ) => boolean
 
 interface IWalletConnectContext {
-  wcClient: Client | undefined
-  setWcClient: React.Dispatch<React.SetStateAction<Client | undefined>>
+  wcClient: WalletConnectClient | undefined
+  setWcClient: React.Dispatch<React.SetStateAction<WalletConnectClient | undefined>>
   storage: KeyValueStorage | undefined
   setStorage: React.Dispatch<React.SetStateAction<KeyValueStorage | undefined>>
   sessionProposals: SessionTypes.Proposal[]
@@ -86,6 +85,7 @@ export interface CtxOptions {
   logger: string
   methods: string[]
   relayServer: string
+  projectId: string
   storageOptions?: KeyValueStorageOptions
 }
 
@@ -102,7 +102,7 @@ export const WalletConnectContextProvider: React.FC<{
   options: CtxOptions
   children: any
 }> = ({options, children}) => {
-  const [wcClient, setWcClient] = useState<Client | undefined>(undefined)
+  const [wcClient, setWcClient] = useState<WalletConnectClient | undefined>(undefined)
   const [storage, setStorage] = useState<KeyValueStorage | undefined>(undefined)
   const [sessionProposals, setSessionProposals] = useState<
     SessionTypes.Proposal[]
@@ -128,11 +128,13 @@ export const WalletConnectContextProvider: React.FC<{
     const st = new KeyValueStorage(options.storageOptions)
     setStorage(st)
     setWcClient(
-      await Client.init({
+      await WalletConnectClient.init({
         controller: true,
-        relayProvider: options.relayServer,
+        projectId: '56de852a69580b46d61b53f7b3922ce1',
+        relayUrl: options.relayServer,
         logger: options.logger,
         storage: st,
+        metadata: options.appMetadata
       })
     )
   }
@@ -158,7 +160,7 @@ export const WalletConnectContextProvider: React.FC<{
         sessions.map((session) =>
           wcClient?.disconnect({
             topic: session.topic,
-            reason: ERROR.USER_DISCONNECTED.format(),
+            reason: { code: 5900, message: 'USER_DISCONNECTED' },
           })
         )
       )
@@ -261,8 +263,6 @@ export const WalletConnectContextProvider: React.FC<{
   )
 
   const subscribeToEvents = useCallback(() => {
-    console.log('ACTION', 'subscribeToEvents')
-
     if (typeof wcClient === 'undefined') {
       throw new Error('Client is not initialized')
     }
@@ -275,7 +275,9 @@ export const WalletConnectContextProvider: React.FC<{
         if (typeof wcClient === 'undefined') {
           throw new Error('Client is not initialized')
         }
-        console.log('EVENT', 'session_proposal')
+
+        // AUTOMATICALLY REJECTS SESSIONS:
+
         const supportedNamespaces: string[] = []
         chains.forEach((chainId) => {
           const [namespace] = chainId.split(':')
@@ -289,7 +291,7 @@ export const WalletConnectContextProvider: React.FC<{
           unsupportedChains.push(chainId)
         })
         if (unsupportedChains.length) {
-          return wcClient.reject({proposal})
+          wcClient.reject({proposal})
         }
         const unsupportedMethods: string[] = []
         proposal.permissions.jsonrpc.methods.forEach((method) => {
@@ -297,25 +299,16 @@ export const WalletConnectContextProvider: React.FC<{
           unsupportedMethods.push(method)
         })
         if (unsupportedMethods.length) {
-          return wcClient.reject({proposal})
+          wcClient.reject({proposal})
         }
 
         setSessionProposals((old) => [...old, proposal])
-
-        return null
       }
     )
 
     wcClient.on(
       CLIENT_EVENTS.session.request,
       async (requestEvent: SessionTypes.RequestEvent) => {
-        // tslint:disable-next-line
-        console.log(
-          'EVENT',
-          CLIENT_EVENTS.session.request,
-          requestEvent.request
-        )
-
         const askApproval = () => {
           setRequests((old) => {
             return [
@@ -374,7 +367,6 @@ export const WalletConnectContextProvider: React.FC<{
       if (typeof wcClient === 'undefined') {
         throw new Error('Client is not initialized')
       }
-      console.log('EVENT', 'session_created')
       setSessions(wcClient.session.values)
     })
 
@@ -382,7 +374,6 @@ export const WalletConnectContextProvider: React.FC<{
       if (typeof wcClient === 'undefined') {
         throw new Error('Client is not initialized')
       }
-      console.log('EVENT', 'session_deleted')
       setSessions(wcClient.session.values)
     })
   }, [
@@ -474,7 +465,7 @@ export const WalletConnectContextProvider: React.FC<{
     }
     await wcClient.disconnect({
       topic,
-      reason: ERROR.USER_DISCONNECTED.format(),
+      reason: { code: 5900, message: 'USER_DISCONNECTED' },
     })
   }
 

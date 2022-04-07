@@ -1,4 +1,6 @@
-export const DEFAULT_RELAY_PROVIDER = "wss://relay.walletconnect.org";
+export const DEFAULT_RELAY_PROVIDER = "wss://relay.walletconnect.com";
+
+export const DEFAULT_PROJECT_ID = '56de852a69580b46d61b53f7b3922ce1';
 
 export const DEFAULT_METHODS = [
   "invokeFunction",
