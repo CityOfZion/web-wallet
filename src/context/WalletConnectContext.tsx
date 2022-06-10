@@ -1,12 +1,9 @@
 import {
   formatJsonRpcError,
-  JsonRpcRequest,
   JsonRpcResponse,
 } from '@json-rpc-tools/utils'
-import WalletConnectClient, { CLIENT_EVENTS } from '@walletconnect/client'
-import {AppMetadata, SessionTypes} from "@walletconnect/types";
-import KeyValueStorage from 'keyvaluestorage'
-import {KeyValueStorageOptions} from 'keyvaluestorage/dist/cjs/shared'
+import SignClient from '@walletconnect/sign-client'
+import {SignClientTypes, SessionTypes} from "@walletconnect/types";
 import PropTypes from 'prop-types'
 import React, {
   useCallback,
@@ -15,104 +12,66 @@ import React, {
   useState,
 } from 'react'
 
-type OnRequestCallback = (
+export type OnRequestCallback = (
   accountAddress: string,
   chainId: string,
-  request: JsonRpcRequest
+  request: SessionRequest
 ) => Promise<JsonRpcResponse>
-type AutoAcceptCallback = (
+export type AutoAcceptCallback = (
   accountAddress: string | undefined,
   chainId: string | undefined,
-  request: JsonRpcRequest
+  request: SessionRequest
 ) => boolean
-
-interface IWalletConnectContext {
-  wcClient: WalletConnectClient | undefined
-  setWcClient: React.Dispatch<React.SetStateAction<WalletConnectClient | undefined>>
-  storage: KeyValueStorage | undefined
-  setStorage: React.Dispatch<React.SetStateAction<KeyValueStorage | undefined>>
-  sessionProposals: SessionTypes.Proposal[]
-  setSessionProposals: React.Dispatch<
-    React.SetStateAction<SessionTypes.Proposal[]>
-    >
-  initialized: boolean
-  setInitialized: React.Dispatch<React.SetStateAction<boolean>>
-  chains: string[]
-  setChains: React.Dispatch<React.SetStateAction<string[]>>
-  sessions: SessionTypes.Created[]
-  setSessions: React.Dispatch<React.SetStateAction<SessionTypes.Created[]>>
-  requests: SessionTypes.RequestEvent[]
-  setRequests: React.Dispatch<React.SetStateAction<SessionTypes.RequestEvent[]>>
-  results: any[]
-  setResults: React.Dispatch<React.SetStateAction<any[]>>
-  init: () => Promise<void>
-  resetApp: () => Promise<void>
-  subscribeToEvents: () => void
-  checkPersistedState: () => Promise<void>
-  approveAndMakeRequest: (
-    requestEvent: SessionTypes.RequestEvent
-  ) => Promise<JsonRpcResponse<any>>
-  makeRequest: (
-    requestEvent: SessionTypes.RequestEvent
-  ) => Promise<JsonRpcResponse<any>>
-  checkApprovedRequest: (
-    request: JsonRpcRequest
-  ) => Promise<boolean | undefined>
-  onURI: (data: any) => Promise<void>
-  getPeerOfRequest: (
-    requestEvent: SessionTypes.RequestEvent
-  ) => Promise<SessionTypes.Participant>
-  approveSession: (
-    proposal: SessionTypes.Proposal,
-    accounts: AddressAndChain[]
-  ) => Promise<void>
-  rejectSession: (proposal: SessionTypes.Proposal) => Promise<void>
-  disconnect: (topic: string) => Promise<void>
-  removeFromPending: (requestEvent: SessionTypes.RequestEvent) => Promise<void>
-  respondRequest: (topic: string, response: JsonRpcResponse) => Promise<void>
-  approveRequest: (
-    requestEvent: SessionTypes.RequestEvent
-  ) => Promise<JsonRpcResponse<any> | null>
-  rejectRequest: (requestEvent: SessionTypes.RequestEvent) => Promise<void>
-  onRequestListener: (listener: OnRequestCallback) => void
-  autoAcceptIntercept: (listener: AutoAcceptCallback) => void
-  cleanConnections: () => Promise<void>
+export type SessionProposal = SignClientTypes.EventArguments["session_proposal"]
+export type SessionRequest = SignClientTypes.EventArguments["session_request"]
+export type PeerOfRequest = {publicKey: string, metadata: SignClientTypes.Metadata}
+export type AddressAndChain = {
+  address: string
+  chain: string
 }
 
-export interface CtxOptions {
-  appMetadata: AppMetadata
-  chainIds: string[]
-  logger: string
-  methods: string[]
-  relayServer: string
-  projectId: string
-  storageOptions?: KeyValueStorageOptions
+interface IWalletConnectContext {
+  signClient: SignClient | undefined
+  sessionProposals: SessionProposal[]
+  initialized: boolean
+  sessions: SessionTypes.Struct[]
+  setSessions: React.Dispatch<React.SetStateAction<SessionTypes.Struct[]>>
+  requests: SessionRequest[]
+  init: () => Promise<void>
+  onURI: (data: any) => Promise<void>
+  getPeerOfRequest: (
+    requestEvent: SessionRequest
+  ) => Promise<PeerOfRequest>
+  approveSession: (
+    proposal: SessionProposal,
+    accountsAndChains: AddressAndChain[],
+    namespacesWithoutAccounts: SessionTypes.Namespaces
+  ) => Promise<void>
+  rejectSession: (proposal: SessionProposal) => Promise<void>
+  disconnect: (topic: string) => Promise<void>
+  approveRequest: (
+    requestEvent: SessionRequest
+  ) => Promise<JsonRpcResponse | null>
+  rejectRequest: (requestEvent: SessionRequest) => Promise<void>
+  onRequestListener: (listener: OnRequestCallback) => void
+  autoAcceptIntercept: (listener: AutoAcceptCallback) => void
 }
 
 export const WalletConnectContext = React.createContext(
   {} as IWalletConnectContext
 )
 
-export type AddressAndChain = {
-  address: string
-  chain: string
-}
-
 export const WalletConnectContextProvider: React.FC<{
-  options: CtxOptions
+  options: SignClientTypes.Options
   children: any
 }> = ({options, children}) => {
-  const [wcClient, setWcClient] = useState<WalletConnectClient | undefined>(undefined)
-  const [storage, setStorage] = useState<KeyValueStorage | undefined>(undefined)
+  const [signClient, setSignClient] = useState<SignClient | undefined>(undefined)
   const [sessionProposals, setSessionProposals] = useState<
-    SessionTypes.Proposal[]
+      SessionProposal[]
     >([])
   const [initialized, setInitialized] = useState<boolean>(false)
-  const [chains, setChains] = useState<string[]>(options.chainIds)
-  const [sessions, setSessions] = useState<SessionTypes.Created[]>([])
-  const [requests, setRequests] = useState<SessionTypes.RequestEvent[]>([])
-  const [results, setResults] = useState<any[]>([])
-  const [sessionsWasClean, setSessionsWasClean] = useState<boolean>(false)
+  const [sessions, setSessions] = useState<SessionTypes.Struct[]>([])
+  const [requests, setRequests] = useState<SessionRequest[]>([])
   const [onRequestCallback, setOnRequestCallback] = useState<
     OnRequestCallback | undefined
     >(undefined)
@@ -120,118 +79,46 @@ export const WalletConnectContextProvider: React.FC<{
     AutoAcceptCallback | undefined
     >(undefined)
 
-  useEffect(() => {
-    init()
+  const init = useCallback(async () => {
+    setSignClient(
+      await SignClient.init(options)
+    )
   }, [])
 
-  const init = async () => {
-    const st = new KeyValueStorage(options.storageOptions)
-    setStorage(st)
-    setWcClient(
-      await WalletConnectClient.init({
-        controller: true,
-        projectId: '56de852a69580b46d61b53f7b3922ce1',
-        relayUrl: options.relayServer,
-        logger: options.logger,
-        storage: st,
-        metadata: options.appMetadata
-      })
-    )
-  }
+  useEffect(() => {
+    init()
+  }, [init])
 
-  const cleanConnections = useCallback(async () => {
-    if (!sessionsWasClean && sessions.length > 0) {
-      setSessionsWasClean(true)
-      setRequests([])
-
-      await Promise.all(
-        sessions.map(async (session) => {
-          await disconnect(session.topic)
-        })
-      )
-
-      setSessions([])
-    }
-  }, [sessions, sessionsWasClean])
-
-  const resetApp = async () => {
-    try {
-      await Promise.all(
-        sessions.map((session) =>
-          wcClient?.disconnect({
-            topic: session.topic,
-            reason: { code: 5900, message: 'USER_DISCONNECTED' },
-          })
-        )
-      )
-    } catch (e) {
-      // ignored
-    }
-    await clearStorage()
-
-    setWcClient(undefined)
-    setSessionProposals([])
-    setInitialized(false)
-    setChains([])
-    setSessions([])
-    setRequests([])
-    setResults([])
-    clearStorage()
-  }
-
-  const clearStorage = async () => {
-    const itemsToRemove: string[] = []
-    const storageItems = await storage?.getKeys()
-
-    if (!storageItems?.length) {
-      return
-    }
-
-    for (let i = 0; i < storageItems.length; i++) {
-      const wcVal = storageItems[i]
-      // TODO: fix storage problem when the connection breaks
-      // if (wcVal?.substring(0, 2) === 'wc') {
-      itemsToRemove.push(wcVal)
-      // }
-    }
-
-    for (let i = 0; i < itemsToRemove.length; i++) {
-      storage?.removeItem(itemsToRemove[i])
-    }
-
-    console.log('ACTION', 'CLEAR STORAGE', storage?.getKeys())
-  }
-
-  const checkPersistedState = useCallback(async () => {
-    if (typeof wcClient === 'undefined') {
+  const loadSessions = useCallback(async () => {
+    if (!signClient) {
       throw new Error('Client is not initialized')
     }
-    setSessions(wcClient.session.values)
-    setRequests(wcClient.session.history.pending)
+    setSessions(signClient.session.values)
     setInitialized(true)
-  }, [wcClient])
+  }, [signClient])
 
   // ---- MAKE REQUESTS AND SAVE/CHECK IF APPROVED ------------------------------//
 
-  const onRequestListener = (listener: OnRequestCallback) => {
+  const onRequestListener = useCallback((listener: OnRequestCallback) => {
     setOnRequestCallback(() => listener)
-  }
+  }, [])
 
-  const autoAcceptIntercept = (listener: AutoAcceptCallback) => {
+  const autoAcceptIntercept = useCallback((listener: AutoAcceptCallback) => {
     setAutoAcceptCallback(() => listener)
-  }
+  }, [])
 
-  const approveAndMakeRequest = async (
-    requestEvent: SessionTypes.RequestEvent
-  ) => {
-    storage?.setItem(`request-${JSON.stringify(requestEvent.request)}`, true)
-    return await makeRequest(requestEvent)
-  }
+  const findSessionByTopic = useCallback(
+      (topic: string) => {
+        return sessions.find((session) => session.topic === topic)
+      },
+      [JSON.stringify(sessions)]
+  )
 
   const makeRequest = useCallback(
-    async (requestEvent: SessionTypes.RequestEvent) => {
+    async (requestEvent: SessionRequest) => {
       const foundSession = findSessionByTopic(requestEvent.topic)
-      const acc = foundSession?.state.accounts[0]
+      const ns = Object.values(foundSession?.namespaces ?? [])[0]
+      const acc = ns?.accounts[0]
       if (!acc) {
         throw new Error('There is no Account')
       }
@@ -240,105 +127,40 @@ export const WalletConnectContextProvider: React.FC<{
       if (!onRequestCallback) {
         throw new Error('There is no onRequestCallback')
       }
-      return await onRequestCallback(address, chainId, requestEvent.request)
+      return await onRequestCallback(address, chainId, requestEvent)
     },
-    [JSON.stringify(sessions)]
-  )
-
-  const checkApprovedRequest = useCallback(
-    async (request: JsonRpcRequest) => {
-      return storage?.getItem<boolean>(`request-${JSON.stringify(request)}`)
-    },
-    [storage]
+    [findSessionByTopic]
   )
 
   const respondRequest = useCallback(
     async (topic: string, response: JsonRpcResponse) => {
-      if (typeof wcClient === 'undefined') {
+      if (!signClient) {
         throw new Error('Client is not initialized')
       }
-      await wcClient.respond({topic, response})
+      await signClient.respond({topic, response})
     },
-    [wcClient]
+    [signClient]
   )
 
   const subscribeToEvents = useCallback(() => {
-    if (typeof wcClient === 'undefined') {
+    if (!signClient) {
       throw new Error('Client is not initialized')
     }
 
-    wcClient.events.removeAllListeners()
+    signClient.events.removeAllListeners()
 
-    wcClient.on(
-      CLIENT_EVENTS.session.proposal,
-      (proposal: SessionTypes.Proposal) => {
-        if (typeof wcClient === 'undefined') {
-          throw new Error('Client is not initialized')
-        }
-
-        // AUTOMATICALLY REJECTS SESSIONS:
-
-        const supportedNamespaces: string[] = []
-        chains.forEach((chainId) => {
-          const [namespace] = chainId.split(':')
-          if (!supportedNamespaces.includes(namespace)) {
-            supportedNamespaces.push(namespace)
-          }
-        })
-        const unsupportedChains: string[] = []
-        proposal.permissions.blockchain.chains.forEach((chainId) => {
-          if (chains.includes(chainId)) return
-          unsupportedChains.push(chainId)
-        })
-        if (unsupportedChains.length) {
-          wcClient.reject({proposal})
-        }
-        const unsupportedMethods: string[] = []
-        proposal.permissions.jsonrpc.methods.forEach((method) => {
-          if (options.methods.includes(method)) return
-          unsupportedMethods.push(method)
-        })
-        if (unsupportedMethods.length) {
-          wcClient.reject({proposal})
-        }
-
+    signClient.on("session_proposal", (proposal: SessionProposal) => {
         setSessionProposals((old) => [...old, proposal])
-      }
-    )
+    })
 
-    wcClient.on(
-      CLIENT_EVENTS.session.request,
-      async (requestEvent: SessionTypes.RequestEvent) => {
-        const askApproval = () => {
-          setRequests((old) => {
-            return [
-              ...old.filter((i) => i.request.id !== requestEvent.request.id),
-              requestEvent,
-            ]
-          })
-        }
-
-        const approve = async () => {
-          const response = await makeRequest(requestEvent)
-          await respondRequest(requestEvent.topic, response)
-        }
-
-        const reject = async (message: string) => {
-          const response = formatJsonRpcError(requestEvent.request.id, message)
-          await respondRequest(requestEvent.topic, response)
-        }
-
+    signClient.on('session_request', async (requestEvent: SessionRequest) => {
         try {
-          const alreadyApproved = await checkApprovedRequest(
-            requestEvent.request
-          )
-          if (alreadyApproved) {
-            await approve()
-          } else if (autoAcceptCallback) {
+          if (autoAcceptCallback) {
             let address: string | undefined = undefined
             let chainId: string | undefined = undefined
             const foundSession = findSessionByTopic(requestEvent.topic)
-            const acc = foundSession?.state.accounts[0]
+            const ns = Object.values(foundSession?.namespaces ?? [])[0]
+            const acc = ns?.accounts[0]
             if (acc) {
               const [namespace, reference, addr] = acc.split(':')
               address = addr
@@ -347,209 +169,182 @@ export const WalletConnectContextProvider: React.FC<{
             const autoAccepted = autoAcceptCallback(
               address,
               chainId,
-              requestEvent.request
+              requestEvent
             )
             if (autoAccepted) {
-              await approve()
-            } else {
-              await askApproval()
+              const response = await makeRequest(requestEvent)
+              await respondRequest(requestEvent.topic, response)
+              return
             }
-          } else {
-            await askApproval()
           }
+
+          setRequests((old) => [...old.filter((i) => i.id !== requestEvent.id), requestEvent])
         } catch (e) {
-          await reject((e as any).message)
+          const response = formatJsonRpcError(requestEvent.id, (e as any).message)
+          await respondRequest(requestEvent.topic, response)
         }
       }
     )
 
-    wcClient.on(CLIENT_EVENTS.session.created, () => {
-      if (typeof wcClient === 'undefined') {
+    signClient.on('session_delete', () => {
+      if (!signClient) {
         throw new Error('Client is not initialized')
       }
-      setSessions(wcClient.session.values)
-    })
-
-    wcClient.on(CLIENT_EVENTS.session.deleted, () => {
-      if (typeof wcClient === 'undefined') {
-        throw new Error('Client is not initialized')
-      }
-      setSessions(wcClient.session.values)
+      setSessions(signClient.session.values)
     })
   }, [
-    chains,
-    checkApprovedRequest,
     makeRequest,
     respondRequest,
-    wcClient,
-    JSON.stringify(sessions),
+    signClient,
+    findSessionByTopic
   ])
 
-  const findSessionByTopic = useCallback(
-    (topic: string) => {
-      return sessions.find((session) => session.topic === topic)
-    },
-    [JSON.stringify(sessions)]
-  )
-
   useEffect(() => {
-    if (wcClient) {
+    if (signClient) {
       subscribeToEvents()
-      checkPersistedState()
+      loadSessions()
     }
-  }, [wcClient, subscribeToEvents, checkPersistedState])
+  }, [signClient, subscribeToEvents, loadSessions])
 
   const onURI = async (data: any) => {
     try {
       const uri = typeof data === 'string' ? data : ''
       if (!uri) return
-      if (typeof wcClient === 'undefined') {
+      if (!signClient) {
         throw new Error('Client is not initialized')
       }
 
-      await wcClient.pair({uri})
+      await signClient.pair({uri})
     } catch (error) {
       throw new Error('client Pair Error')
     }
-  }
+  } // this should not be a callback because it would require the developer to put it as dependency
 
-  const getPeerOfRequest = async (requestEvent: SessionTypes.RequestEvent) => {
-    if (typeof wcClient === 'undefined') {
+  const getPeerOfRequest = async (requestEvent: SessionRequest) => {
+    if (!signClient) {
       throw new Error('Client is not initialized')
     }
-    const {peer} = await wcClient.session.get(requestEvent.topic)
+    const {peer} = await signClient.session.get(requestEvent.topic)
     return peer
-  }
+  } // this should not be a callback because it would require the developer to put it as dependency
 
   const approveSession = async (
-    proposal: SessionTypes.Proposal,
-    accounts: AddressAndChain[]
+    proposal: SessionProposal,
+    accountsAndChains: AddressAndChain[],
+    namespacesWithoutAccounts: SessionTypes.Namespaces
   ) => {
-    console.log('ACTION', 'approveSession')
-    if (typeof wcClient === 'undefined') {
+    if (!signClient) {
       throw new Error('Client is not initialized')
     }
-    if (typeof accounts === 'undefined') {
+    if (typeof accountsAndChains === 'undefined') {
       throw new Error('Accounts is undefined')
     }
-    const accs = accounts
-      .filter((account) => {
-        const [namespace, reference] = account.chain.split(':')
-        const chainId = `${namespace}:${reference}`
-        return proposal.permissions.blockchain.chains.includes(chainId)
-      })
-      .map((acc) => `${acc.chain}:${acc.address}`)
+    const accounts = accountsAndChains.map((acc) => `${acc.chain}:${acc.address}`)
 
-    const response = {
-      state: {accounts: accs},
-      metadata: options.appMetadata,
-    }
-    const session = await wcClient.approve({proposal, response})
+    const namespaces: SessionTypes.Namespaces = Object.keys(namespacesWithoutAccounts).reduce((result, key) => {
+      result[key] = {...namespacesWithoutAccounts[key], accounts}
+      return result
+    }, {})
+
+    const { acknowledged } = await signClient.approve({
+      id: proposal.id,
+      namespaces
+    })
+
+    const session = await acknowledged()
+
     setSessionProposals((old) => old.filter((i) => i !== proposal))
     setSessions([session])
-  }
+  } // this should not be a callback because it would require the developer to put it as dependency
 
-  const rejectSession = async (proposal: SessionTypes.Proposal) => {
-    console.log('ACTION', 'rejectSession')
-    if (typeof wcClient === 'undefined') {
+  const rejectSession = async (proposal: SessionProposal) => {
+    if (!signClient) {
       throw new Error('Client is not initialized')
     }
-    await wcClient.reject({proposal})
+    await signClient.reject({
+      id: proposal.id,
+      reason: {
+        code: 1,
+        message: 'rejected by the user'
+      }
+    })
     setSessionProposals((old) => old.filter((i) => i !== proposal))
-  }
+  } // this should not be a callback because it would require the developer to put it as dependency
 
   const disconnect = async (topic: string) => {
-    console.log('ACTION', 'disconnect')
-    if (typeof wcClient === 'undefined') {
+    if (!signClient) {
       throw new Error('Client is not initialized')
     }
-    await wcClient.disconnect({
+    await signClient.disconnect({
       topic,
       reason: { code: 5900, message: 'USER_DISCONNECTED' },
     })
-  }
 
-  const removeFromPending = async (requestEvent: SessionTypes.RequestEvent) => {
+    setSessions(signClient.session.values)
+  } // this should not be a callback because it would require the developer to put it as dependency
+
+  const removeFromPending = useCallback(async (requestEvent: SessionRequest) => {
     setRequests(
-      requests.filter((x) => x.request.id !== requestEvent.request.id)
+      requests.filter((x) => x.id !== requestEvent.id)
     )
-  }
+  }, [])
 
-  const approveRequest = async (requestEvent: SessionTypes.RequestEvent) => {
-    if (typeof wcClient === 'undefined') {
+  const approveRequest = async (requestEvent: SessionRequest) => {
+    if (!signClient) {
       throw new Error('Client is not initialized')
     }
     try {
-      const response = await approveAndMakeRequest(requestEvent)
-      await wcClient.respond({
+      const response = await makeRequest(requestEvent)
+      await signClient.respond({
         topic: requestEvent.topic,
         response,
       })
       await removeFromPending(requestEvent)
       return response
     } catch (error) {
-      await wcClient.respond({
+      await signClient.respond({
         topic: requestEvent.topic,
         response: formatJsonRpcError(
-          requestEvent.request.id,
+          requestEvent.id,
           'Failed or Rejected Request'
         ),
       })
       throw error
     }
-  }
+  } // this should not be a callback because it would require the developer to put it as dependency
 
-  const rejectRequest = async (requestEvent: SessionTypes.RequestEvent) => {
-    if (typeof wcClient === 'undefined') {
+  const rejectRequest = async (requestEvent: SessionRequest) => {
+    if (!signClient) {
       throw new Error('Client is not initialized')
     }
-    await wcClient.respond({
+    await signClient.respond({
       topic: requestEvent.topic,
       response: formatJsonRpcError(
-        requestEvent.request.id,
+        requestEvent.id,
         'Failed or Rejected Request'
       ),
     })
     await removeFromPending(requestEvent)
-  }
+  } // this should not be a callback because it would require the developer to put it as dependency
 
   const contextValue: IWalletConnectContext = {
-    wcClient,
-    setWcClient,
-    storage,
-    setStorage,
+    signClient,
     sessionProposals,
-    setSessionProposals,
     initialized,
-    setInitialized,
-    chains,
-    setChains,
     sessions,
     setSessions,
     requests,
-    setRequests,
-    results,
-    setResults,
 
     init,
-    resetApp,
-    subscribeToEvents,
-    checkPersistedState,
-    approveAndMakeRequest,
-    makeRequest,
-    checkApprovedRequest,
     onURI,
     getPeerOfRequest,
     approveSession,
     rejectSession,
     disconnect,
-    removeFromPending,
-    respondRequest,
     approveRequest,
     rejectRequest,
     onRequestListener,
     autoAcceptIntercept,
-    cleanConnections,
   }
 
   return (

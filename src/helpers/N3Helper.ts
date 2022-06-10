@@ -1,9 +1,9 @@
 import Neon, {rpc, sc, tx, wallet, u} from '@cityofzion/neon-js'
 import {Account} from '@cityofzion/neon-core/lib/wallet'
-import {JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
 import {ContractParam} from "@cityofzion/neon-core/lib/sc";
 import {WitnessScope} from "@cityofzion/neon-core/lib/tx/components/WitnessScope";
 import {randomBytes} from "crypto";
+import {SessionRequest} from "../context/WalletConnectContext";
 
 export type Signer = {
   scopes: WitnessScope
@@ -21,6 +21,11 @@ export type ContractInvocation = {
 export type ContractInvocationMulti = {
   signers: Signer[]
   invocations: ContractInvocation[]
+}
+
+export type SignMessagePayload = {
+  message: string,
+  version: number
 }
 
 export type SignedMessage = {
@@ -54,7 +59,8 @@ export class N3Helper {
     return resp.protocol.network
   }
 
-  rpcCall = async (account: Account | undefined, request: JsonRpcRequest): Promise<JsonRpcResponse> => {
+  rpcCall = async (account: Account | undefined, sessionRequest: SessionRequest): Promise<any> => {
+    const { params: {request} } = sessionRequest
     let result: any
 
     if (request.method === 'invokeFunction') {
@@ -85,14 +91,11 @@ export class N3Helper {
       result = await new rpc.RPCClient(this.rpcAddress).getApplicationLog(request.params[0])
 
     } else {
-
-      const {jsonrpc, ...queryLike} = request
-      result = await new rpc.RPCClient(this.rpcAddress).execute(Neon.create.query({...queryLike, jsonrpc: "2.0"}));
-
+      throw new Error("Invalid Request method")
     }
 
     return {
-      id: request.id,
+      id: sessionRequest.id,
       jsonrpc: "2.0",
       result
     }
@@ -156,15 +159,15 @@ export class N3Helper {
     return await rpcClient.sendRawTransaction(trx)
   }
 
-  signMessage = (account: Account, message: string | {message: string, legacy: boolean}): SignedMessage => {
-    if (message instanceof Object) {
-      if (!message.legacy) {
-        return this.signMessageNew(account, message.message)
-      } else {
-        return this.signMessageLegacy(account, message.message)
-      }
-    } else {
+  signMessage = (account: Account, message: string | SignMessagePayload): SignedMessage => {
+    if (typeof message === 'string') {
       return this.signMessageLegacy(account, message)
+    } else if (message.version === 1) {
+      return this.signMessageLegacy(account, message.message)
+    } else if (message.version === 2) {
+      return this.signMessageNew(account, message.message)
+    } else {
+      throw new Error("Invalid signMessage version")
     }
   }
 

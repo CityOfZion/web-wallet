@@ -1,6 +1,6 @@
 import * as React from "react";
 import {Flex, Image, Link, Text} from "@chakra-ui/react";
-import {useWalletConnect} from "../context/WalletConnectContext";
+// import {useWalletConnect} from "../context/WalletConnectContext";
 import LogoutIcon from "./icon/LogoutIcon";
 import {FileHelper} from "../helpers/FileHelper";
 import {useAccountContext} from "../context/AccountContext";
@@ -11,13 +11,13 @@ const chainMeta = {
 }
 
 export default function Header(): any {
-    const walletConnectCtx = useWalletConnect()
+    // const walletConnectCtx = useWalletConnect()
     const accountCtx = useAccountContext()
 
     const logout = async () => {
         accountCtx.setAccountPassword(undefined)
         accountCtx.setAccountDecripted(false)
-        await walletConnectCtx.cleanConnections()
+        // await walletConnectCtx.cleanConnections()
     }
 
     const ellipseAddress = (address = "", width = 10) => {

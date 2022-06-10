@@ -1,17 +1,16 @@
 import * as React from "react";
 
 import Peer from "../components/Peer";
-import {Button, DividerProps, Flex, Image, Spacer, Text, Box, Spinner} from "@chakra-ui/react";
-import {useWalletConnect} from "../context/WalletConnectContext";
-import {SessionTypes} from "@walletconnect/types";
+import {Button, Spinner, DividerProps, Flex, Image, Spacer, Text, Box} from "@chakra-ui/react";
+import {PeerOfRequest, SessionRequest, useWalletConnect} from "../context/WalletConnectContext";
 import {useEffect, useState} from "react";
 
-export default function RequestCard(props: DividerProps & {requestEvent: SessionTypes.RequestEvent, closeRequest: () => void}): any {
+export default function RequestCard(props: DividerProps & {requestEvent: SessionRequest, closeRequest: () => void}): any {
   const walletConnectCtx = useWalletConnect()
-  const [peer, setPeer] = useState<SessionTypes.Participant | undefined>(undefined)
+  const [peer, setPeer] = useState<PeerOfRequest | undefined>(undefined)
   const [sendingResponse, setSendingResponse] = useState(false)
 
-  const request = props.requestEvent.request
+  const request = props.requestEvent.params.request
 
   useEffect(() => {
     walletConnectCtx.getPeerOfRequest(props.requestEvent).then(setPeer)

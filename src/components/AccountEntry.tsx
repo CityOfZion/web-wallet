@@ -1,15 +1,13 @@
 import * as React from "react";
 import {Box, Button, DividerProps, Flex, Image, Input, Select, Spacer, Spinner, Text, useToast} from "@chakra-ui/react";
-import {useWalletConnect} from "../context/WalletConnectContext";
 import {FileHelper} from "../helpers/FileHelper";
 import {wallet} from "@cityofzion/neon-js";
 import {useCallback, useEffect, useState} from "react";
-import KeyValueStorage from "keyvaluestorage";
 import {Account, AccountJSON} from "@cityofzion/neon-core/lib/wallet/Account";
 import {useAccountContext} from "../context/AccountContext";
+import {DEFAULT_NETWORKS} from "../constants";
 
 export default function AccountEntry(props: DividerProps): any {
-    const walletConnectCtx = useWalletConnect()
     const accountCtx = useAccountContext()
     const toast = useToast()
     const [choseNetwork, setChoseNetwork] = useState(false)
@@ -20,9 +18,10 @@ export default function AccountEntry(props: DividerProps): any {
         accountCtx.setAccount(acc);
     }
 
-    const loadAccountFromStorage = useCallback(async (storage: KeyValueStorage) => {
+    const loadAccountFromStorage = useCallback(async () => {
         if (!accountCtx.account) {
-            const json = await storage.getItem<Partial<AccountJSON>>("account")
+            const str = localStorage.getItem("account")
+            const json = str ? JSON.parse(str) as Partial<AccountJSON> : null
             if (json) {
                 const account = new wallet.Account(json)
                 setAccount(account)
@@ -31,10 +30,8 @@ export default function AccountEntry(props: DividerProps): any {
     }, [accountCtx])
 
     useEffect(() => {
-        if (walletConnectCtx.storage) {
-            loadAccountFromStorage(walletConnectCtx.storage)
-        }
-    }, [loadAccountFromStorage, walletConnectCtx.storage])
+        loadAccountFromStorage()
+    }, [loadAccountFromStorage])
 
     const login = async (e: React.SyntheticEvent) => {
         e.preventDefault()
@@ -44,7 +41,7 @@ export default function AccountEntry(props: DividerProps): any {
     }
 
     const passwordOnAccount = async () => {
-        if (accountCtx.account && accountCtx.accountPassword && walletConnectCtx.storage) {
+        if (accountCtx.account && accountCtx.accountPassword) {
             if (!creatingNew) {
                 try {
                     await accountCtx.account.decrypt(accountCtx.accountPassword)
@@ -65,7 +62,7 @@ export default function AccountEntry(props: DividerProps): any {
             } catch (e) {
                 console.log("error encrypting account")
             }
-            await walletConnectCtx.storage.setItem("account", accountCtx.account.export())
+            await localStorage.setItem("account", JSON.stringify(accountCtx.account.export()))
         }
     }
 
@@ -97,9 +94,7 @@ export default function AccountEntry(props: DividerProps): any {
                         value={accountCtx.networkType}
                         borderColor="#373d4a" borderRadius={0} bg="#1a202b"
                         mt="0.5rem" w="20rem" color="#999999">
-                    <option value="neo3:testnet">Testnet</option>
-                    <option value="neo3:mainnet">Mainnet</option>
-                    <option value="neo3:private">Private Network</option>
+                    {Object.keys(DEFAULT_NETWORKS).map((key) => (<option value={key} key={key}>{DEFAULT_NETWORKS[key].name}</option>))}
                 </Select>
                 {accountCtx.networkType === 'neo3:private' && <>
                     <Text fontSize="0.75rem" mt="1.5rem" w="20rem">RPC Address</Text>
