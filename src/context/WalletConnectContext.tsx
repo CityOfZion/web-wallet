@@ -240,9 +240,10 @@ export const WalletConnectContextProvider: React.FC<{
       throw new Error('Accounts is undefined')
     }
     const accounts = accountsAndChains.map((acc) => `${acc.chain}:${acc.address}`)
+    const chains = accountsAndChains.map((acc) => acc.chain)
 
     const namespaces: SessionTypes.Namespaces = Object.keys(namespacesWithoutAccounts).reduce((result, key) => {
-      result[key] = {...namespacesWithoutAccounts[key], accounts}
+      result[key] = {...namespacesWithoutAccounts[key], accounts, chains}
       return result
     }, {})
 
