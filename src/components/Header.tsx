@@ -1,5 +1,5 @@
 import * as React from "react";
-import {Flex, Image, Link, Text} from "@chakra-ui/react";
+import {Box, Flex, Image, Link, Text} from '@chakra-ui/react'
 import {useWalletConnect} from "../context/WalletConnectContext";
 import LogoutIcon from "./icon/LogoutIcon";
 import {FileHelper} from "../helpers/FileHelper";
@@ -35,10 +35,21 @@ export default function Header(): any {
 
     return (
         <Flex align="center" bgColor="#00000033" borderBottom="1px" borderColor="#ffffff33" h={["3.5rem", "6rem"]} px={["1rem", "3rem"]}>
-            <Flex direction="column" flex={1} align={isLoggedIn() ? 'start' : 'center'}>
+            <Flex direction="column" flex={1} align={'start'}>
                 <Text fontSize="2.25rem" fontWeight="bold">Web Wallet</Text>
                 <Text fontSize="0.875rem" color="#888888" textTransform="uppercase" mt="-0.5rem">For Tests</Text>
             </Flex>
+            <Box flex={1} borderWidth={1} p={'0.5rem'} borderColor={'#ffcc0066'} bg={'#ffcc0011'} mr={'1rem'}>
+                ⚠ Warning: To stay compatible with the Wallets, all Dapps will need to upgrade. Read the{' '}
+                <Link
+                  href={'https://github.com/CityOfZion/wallet-connect-sdk/blob/develop/MIGRATION.md'}
+                  target={'_blank'}
+                  color={'#0099ff'}
+                >
+                    Migration Document
+                </Link>{' '}
+                to understand how and more important <b>when</b> to do it.
+            </Box>
             {isLoggedIn() && (
                 <Flex direction="column" align="right">
                     {accountCtx.account &&
