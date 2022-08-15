@@ -174,9 +174,6 @@ export class N3Helper {
           : undefined
       )
 
-    console.log(cim.systemFeeOverride, cim.extraSystemFee, systemFeeOverride?.toString())
-    console.log(cim.networkFeeOverride, cim.extraNetworkFee, networkFeeOverride?.toString())
-
     await Neon.experimental.txHelpers.addFees(trx, {
       ...config,
       systemFeeOverride,
