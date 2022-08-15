@@ -20,7 +20,11 @@ export type ContractInvocation = {
 
 export type ContractInvocationMulti = {
   signers: Signer[]
-  invocations: ContractInvocation[]
+  invocations: ContractInvocation[],
+  extraSystemFee?: number,
+  systemFeeOverride?: number,
+  extraNetworkFee?: number,
+  networkFeeOverride?: number
 }
 
 export type SignMessagePayload = {
@@ -148,10 +152,35 @@ export class N3Helper {
       signers: N3Helper.buildMultipleSigner(account, cim.signers)
     })
 
-    await Neon.experimental.txHelpers.addFees(trx, {
+    const config = {
       rpcAddress: this.rpcAddress,
       networkMagic: this.networkMagic,
-      account
+      account,
+    }
+
+    const systemFeeOverride = cim.systemFeeOverride
+      ? u.BigInteger.fromNumber(cim.systemFeeOverride)
+      : (
+        cim.extraSystemFee
+          ? (await Neon.experimental.txHelpers.getSystemFee(trx.script, config, trx.signers)).add(cim.extraSystemFee)
+          : undefined
+      )
+
+    const networkFeeOverride = cim.networkFeeOverride
+      ? u.BigInteger.fromNumber(cim.networkFeeOverride)
+      : (
+        cim.extraNetworkFee
+          ? (await Neon.experimental.txHelpers.calculateNetworkFee(trx, account, config)).add(cim.extraNetworkFee)
+          : undefined
+      )
+
+    console.log(cim.systemFeeOverride, cim.extraSystemFee, systemFeeOverride?.toString())
+    console.log(cim.networkFeeOverride, cim.extraNetworkFee, networkFeeOverride?.toString())
+
+    await Neon.experimental.txHelpers.addFees(trx, {
+      ...config,
+      systemFeeOverride,
+      networkFeeOverride,
     })
 
     trx.sign(account, this.networkMagic)
@@ -199,6 +228,15 @@ export class N3Helper {
 
   verifyMessage = (verifyArgs: SignedMessage): boolean => {
     return wallet.verify(verifyArgs.messageHex, verifyArgs.data, verifyArgs.publicKey)
+  }
+
+  getGasBalance = async (account: Account): Promise<number> => {
+    const rpcClient = new rpc.RPCClient(this.rpcAddress)
+    const response = await rpcClient.invokeFunction('0xd2a4cff31913016155e38e474a2c06d08be276cf',
+      "balanceOf",
+      [sc.ContractParam.hash160(account.address)]
+    );
+    return parseInt(response.stack[0].value as string) / Math.pow(10, 8)
   }
 
   private static convertParams(args: any[]): ContractParam[] {

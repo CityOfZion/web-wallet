@@ -1,9 +1,11 @@
 import * as React from "react";
 import {Flex, Image, Link, Text} from "@chakra-ui/react";
-// import {useWalletConnect} from "../context/WalletConnectContext";
 import LogoutIcon from "./icon/LogoutIcon";
 import {FileHelper} from "../helpers/FileHelper";
 import {useAccountContext} from "../context/AccountContext";
+import {N3Helper} from '../helpers/N3Helper'
+import {DEFAULT_NETWORKS} from '../constants'
+import {useCallback, useEffect, useState} from 'react'
 
 const chainMeta = {
     name: 'Neo3',
@@ -11,13 +13,12 @@ const chainMeta = {
 }
 
 export default function Header(): any {
-    // const walletConnectCtx = useWalletConnect()
     const accountCtx = useAccountContext()
+    const [balance, setBalance] = useState<number>()
 
     const logout = async () => {
         accountCtx.setAccountPassword(undefined)
         accountCtx.setAccountDecripted(false)
-        // await walletConnectCtx.cleanConnections()
     }
 
     const ellipseAddress = (address = "", width = 10) => {
@@ -32,6 +33,19 @@ export default function Header(): any {
     const isLoggedIn = () => {
         return accountCtx.account && accountCtx.accountDecripted
     }
+
+    const loadBalance = useCallback(async () => {
+        if (!accountCtx.account) {
+            return undefined
+        }
+        const n3Helper = await N3Helper.init(DEFAULT_NETWORKS[accountCtx.networkType].url || accountCtx.privateRpcAddress)
+        const gas = await n3Helper.getGasBalance(accountCtx.account)
+        setBalance(gas)
+    }, [accountCtx.account, accountCtx.networkType, accountCtx.privateRpcAddress])
+
+    useEffect(() => {
+        loadBalance()
+    }, [loadBalance])
 
     return (
         <Flex align="center" bgColor="#00000033" borderBottom="1px" borderColor="#ffffff33" h={["3.5rem", "6rem"]} px={["1rem", "3rem"]}>
@@ -50,6 +64,7 @@ export default function Header(): any {
                                    mr="0.5rem"/>
                             <Flex direction="column">
                                 <Text fontSize="0.875rem">{ellipseAddress(accountCtx.account.address, 8)}</Text>
+                                <Text fontSize="0.6rem">GAS: {balance}</Text>
                                 <Link fontSize="0.875rem" mt="-0.3rem" color="#888888" onClick={exportAccount}>
                                     Download JSON File
                                 </Link>
