@@ -7,6 +7,7 @@ import {SessionRequest} from "../context/WalletConnectContext";
 
 export type Signer = {
   scopes: WitnessScope
+  account?: string
   allowedContracts?: string[]
   allowedGroups?: string[]
 }
@@ -251,7 +252,7 @@ export class N3Helper {
 
   private static buildSigner(account: Account, signerEntry?: Signer) {
     const signer = new tx.Signer({
-      account: account.scriptHash
+      account: signerEntry?.account ?? account.scriptHash
     })
 
     signer.scopes = signerEntry?.scopes ?? WitnessScope.CalledByEntry
