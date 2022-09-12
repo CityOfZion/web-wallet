@@ -4,12 +4,12 @@
   "private": true,
   "author": "COZ, Inc.",
   "scripts": {
-    "start": "cross-env GENERATE_SOURCEMAP=false react-scripts start",
-    "build": "cross-env GENERATE_SOURCEMAP=false react-scripts build",
+    "start": "cross-env GENERATE_SOURCEMAP=false react-app-rewired start",
+    "build": "cross-env GENERATE_SOURCEMAP=false react-app-rewired build",
     "deploy": "aws s3 sync ./build s3://web-wallet-coz --acl public-read",
     "deploy:develop": "aws s3 sync ./build s3://web-wallet-coz-dev --acl public-read",
     "lint": "eslint ./src/**/*.ts*",
-    "test": "react-scripts test",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
   "repository": {
@@ -75,6 +75,7 @@
     "eslint": "^7.28.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^3.4.0",
-    "prettier": "^2.3.1"
+    "prettier": "^2.3.1",
+    "react-app-rewired": "^2.2.1"
   }
 }
