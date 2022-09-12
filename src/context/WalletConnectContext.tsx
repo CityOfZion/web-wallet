@@ -122,7 +122,7 @@ export const WalletConnectContextProvider: React.FC<{
       if (!acc) {
         throw new Error('There is no Account')
       }
-      const [namespace, reference, address] = acc?.split(':')
+      const [namespace, reference, address] = acc.split(':')
       const chainId = `${namespace}:${reference}`
       if (!onRequestCallback) {
         throw new Error('There is no onRequestCallback')

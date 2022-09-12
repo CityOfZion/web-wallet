@@ -2,7 +2,7 @@ import Neon, {rpc, sc, tx, wallet, u} from '@cityofzion/neon-js'
 import {Account} from '@cityofzion/neon-core/lib/wallet'
 import {ContractParam} from "@cityofzion/neon-core/lib/sc";
 import {WitnessScope} from "@cityofzion/neon-core/lib/tx/components/WitnessScope";
-import {randomBytes} from "crypto";
+import randomBytes from "randombytes"; // use the randomBytes you have available in your environment
 import {SessionRequest} from "../context/WalletConnectContext";
 
 export type Signer = {
