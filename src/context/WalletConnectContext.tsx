@@ -129,7 +129,7 @@ export const WalletConnectContextProvider: React.FC<{
       }
       return await onRequestCallback(address, chainId, requestEvent)
     },
-    [findSessionByTopic]
+    [findSessionByTopic, onRequestCallback]
   )
 
   const respondRequest = useCallback(
@@ -310,6 +310,7 @@ export const WalletConnectContextProvider: React.FC<{
           'Failed or Rejected Request'
         ),
       })
+      await removeFromPending(requestEvent)
       throw error
     }
   } // this should not be a callback because it would require the developer to put it as dependency

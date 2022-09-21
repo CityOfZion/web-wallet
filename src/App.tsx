@@ -7,7 +7,7 @@ import {CloseButton, Flex, Spacer, Spinner} from "@chakra-ui/react";
 import Header from "./components/Header";
 import {useAccountContext} from "./context/AccountContext";
 import AccountEntry from "./components/AccountEntry";
-import {useEffect, useState} from "react";
+import { useCallback, useEffect, useState } from 'react'
 import ConnectDapp from "./components/ConnectDapp";
 import {N3Helper} from "./helpers/N3Helper";
 import {DEFAULT_AUTOACCEPT_METHODS, DEFAULT_NETWORKS} from "./constants";
@@ -22,14 +22,17 @@ export default function App(): any {
     setConnectingApp(!walletConnectCtx.sessions.length)
   }, [walletConnectCtx.sessions])
 
+  const requestListener = useCallback(async (acc, chain, req: SessionRequest) => {
+    return await (await N3Helper.init(DEFAULT_NETWORKS[chain].url || accountCtx.privateRpcAddress)).rpcCall(accountCtx.account, req)
+  }, [accountCtx.account, accountCtx.privateRpcAddress])
+
   useEffect(() => {
     // if the request method is 'testInvoke' or 'multiTestInvoke' we auto-accept it
     walletConnectCtx.autoAcceptIntercept((acc, chain, req: SessionRequest) =>
       DEFAULT_AUTOACCEPT_METHODS.includes(req.params.request.method))
 
-    walletConnectCtx.onRequestListener(async (acc, chain, req: SessionRequest) =>
-      await (await N3Helper.init(DEFAULT_NETWORKS[chain].url || accountCtx.privateRpcAddress)).rpcCall(accountCtx.account, req))
-  }, [accountCtx.account, accountCtx.privateRpcAddress])
+    walletConnectCtx.onRequestListener(requestListener)
+  }, [requestListener])
 
   return (
     <Flex direction="column" w="100vw" minH="100vh" bgImage="url(/bg.png)" color="white">

@@ -18,9 +18,12 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
 
   const approve = async () => {
     setSendingResponse(true)
-    await walletConnectCtx.approveRequest(props.requestEvent)
-    setSendingResponse(false)
-    props.closeRequest()
+    try {
+      await walletConnectCtx.approveRequest(props.requestEvent)
+    } finally {
+      setSendingResponse(false)
+      props.closeRequest()
+    }
   }
 
   const reject = async () => {

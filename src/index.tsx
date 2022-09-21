@@ -12,9 +12,9 @@ import {WalletConnectContextProvider} from "./context/WalletConnectContext";
 import {AccountContextProvider} from "./context/AccountContext";
 
 const wcOptions = {
-  appMetadata: DEFAULT_APP_METADATA,
+  metadata: DEFAULT_APP_METADATA,
   logger: DEFAULT_LOGGER,
-  relayServer: DEFAULT_RELAY_PROVIDER,
+  relayUrl: DEFAULT_RELAY_PROVIDER,
   projectId: DEFAULT_PROJECT_ID
 }
 
