@@ -1,4 +1,8 @@
-export const DEFAULT_RELAY_PROVIDER = "wss://relay.walletconnect.org";
+import {SessionTypes} from "@walletconnect/types";
+
+export const DEFAULT_RELAY_PROVIDER = "wss://relay.walletconnect.com";
+
+export const DEFAULT_PROJECT_ID = '56de852a69580b46d61b53f7b3922ce1';
 
 export const DEFAULT_METHODS = [
   "invokeFunction",
@@ -30,7 +34,15 @@ export const DEFAULT_APP_METADATA = {
 
 export const DEFAULT_CHAIN = 'neo3:testnet'
 export const DEFAULT_NETWORKS = {
-  "neo3:testnet": "https://testnet1.neo.coz.io:443",
-  'neo3:mainnet': "http://seed1.neo.org:10332",
-  'neo3:private': null
+  "neo3:testnet": { url: "https://testnet1.neo.coz.io:443", name: 'Testnet' },
+  'neo3:mainnet': { url: "http://seed1.neo.org:10332", name: 'Mainnet' },
+  'neo3:private': { url: null, name: 'Private Network' }
+}
+export const DEFAULT_BLOCKCHAINS = ['neo3'] as const
+export const DEFAULT_NAMESPACES: SessionTypes.Namespaces = {
+  [DEFAULT_BLOCKCHAINS[0]]: {
+    accounts: [], // will be overridden
+    methods: [...DEFAULT_METHODS],
+    events: []
+  }
 }

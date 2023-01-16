@@ -66,7 +66,7 @@ export default function ConnectDapp(props: DividerProps): any {
   }, [walletConnectCtx.sessionProposals.length])
 
   const handleUnhandledRejection = useCallback((event: PromiseRejectionEvent) => {
-    if (event.reason.message.includes('No matching pairing')) {
+    if (event.reason.message && event.reason.message.includes('No matching pairing')) {
       setLoading(false)
       toast({
         title: "Expired code",

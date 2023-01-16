@@ -1,12 +1,13 @@
 import Neon, {rpc, sc, tx, wallet, u} from '@cityofzion/neon-js'
 import {Account} from '@cityofzion/neon-core/lib/wallet'
-import {JsonRpcRequest, JsonRpcResponse} from "@json-rpc-tools/utils";
 import {ContractParam} from "@cityofzion/neon-core/lib/sc";
 import {WitnessScope} from "@cityofzion/neon-core/lib/tx/components/WitnessScope";
-import {randomBytes} from "crypto";
+import randomBytes from "randombytes"; // use the randomBytes you have available in your environment
+import {SessionRequest} from "../context/WalletConnectContext";
 
 export type Signer = {
   scopes: WitnessScope
+  account?: string
   allowedContracts?: string[]
   allowedGroups?: string[]
 }
@@ -20,7 +21,16 @@ export type ContractInvocation = {
 
 export type ContractInvocationMulti = {
   signers: Signer[]
-  invocations: ContractInvocation[]
+  invocations: ContractInvocation[],
+  extraSystemFee?: number,
+  systemFeeOverride?: number,
+  extraNetworkFee?: number,
+  networkFeeOverride?: number
+}
+
+export type SignMessagePayload = {
+  message: string,
+  version: number
 }
 
 export type SignedMessage = {
@@ -29,6 +39,11 @@ export type SignedMessage = {
   salt: string
   messageHex: string
 }
+
+export const SUPPORTED_ARG_TYPES = ['Any', 'Signature', 'Boolean', 'Integer', 'Hash160', 'Address', 'ScriptHash', 'Null', 'Hash256',
+  'ByteArray', 'PublicKey', 'String', 'ByteString', 'Array', 'Buffer', 'InteropInterface', 'Void'] as const
+
+export type ArgType = typeof SUPPORTED_ARG_TYPES[number]
 
 export class N3Helper {
   private readonly rpcAddress: string
@@ -54,7 +69,8 @@ export class N3Helper {
     return resp.protocol.network
   }
 
-  rpcCall = async (account: Account | undefined, request: JsonRpcRequest): Promise<JsonRpcResponse> => {
+  rpcCall = async (account: Account | undefined, sessionRequest: SessionRequest): Promise<any> => {
+    const { params: {request} } = sessionRequest
     let result: any
 
     if (request.method === 'invokeFunction') {
@@ -85,14 +101,11 @@ export class N3Helper {
       result = await new rpc.RPCClient(this.rpcAddress).getApplicationLog(request.params[0])
 
     } else {
-
-      const {jsonrpc, ...queryLike} = request
-      result = await new rpc.RPCClient(this.rpcAddress).execute(Neon.create.query({...queryLike, jsonrpc: "2.0"}));
-
+      throw new Error("Invalid Request method")
     }
 
     return {
-      id: request.id,
+      id: sessionRequest.id,
       jsonrpc: "2.0",
       result
     }
@@ -145,10 +158,32 @@ export class N3Helper {
       signers: N3Helper.buildMultipleSigner(account, cim.signers)
     })
 
-    await Neon.experimental.txHelpers.addFees(trx, {
+    const config = {
       rpcAddress: this.rpcAddress,
       networkMagic: this.networkMagic,
-      account
+      account,
+    }
+
+    const systemFeeOverride = cim.systemFeeOverride
+      ? u.BigInteger.fromNumber(cim.systemFeeOverride)
+      : (
+        cim.extraSystemFee
+          ? (await Neon.experimental.txHelpers.getSystemFee(trx.script, config, trx.signers)).add(cim.extraSystemFee)
+          : undefined
+      )
+
+    const networkFeeOverride = cim.networkFeeOverride
+      ? u.BigInteger.fromNumber(cim.networkFeeOverride)
+      : (
+        cim.extraNetworkFee
+          ? (await Neon.experimental.txHelpers.calculateNetworkFee(trx, account, config)).add(cim.extraNetworkFee)
+          : undefined
+      )
+
+    await Neon.experimental.txHelpers.addFees(trx, {
+      ...config,
+      systemFeeOverride,
+      networkFeeOverride,
     })
 
     trx.sign(account, this.networkMagic)
@@ -156,7 +191,19 @@ export class N3Helper {
     return await rpcClient.sendRawTransaction(trx)
   }
 
-  signMessage = (account: Account, message: string): SignedMessage => {
+  signMessage = (account: Account, message: string | SignMessagePayload): SignedMessage => {
+    if (typeof message === 'string') {
+      return this.signMessageLegacy(account, message)
+    } else if (message.version === 1) {
+      return this.signMessageLegacy(account, message.message)
+    } else if (message.version === 2) {
+      return this.signMessageNew(account, message.message)
+    } else {
+      throw new Error("Invalid signMessage version")
+    }
+  }
+
+  signMessageLegacy = (account: Account, message: string): SignedMessage => {
     const salt = randomBytes(16).toString('hex')
     const parameterHexString = u.str2hexstring(salt + message)
     const lengthHex = u.num2VarInt(parameterHexString.length / 2)
@@ -170,26 +217,56 @@ export class N3Helper {
     }
   }
 
+  signMessageNew = (account: Account, message: string): SignedMessage => {
+    const salt = randomBytes(16).toString('hex')
+    const messageHex = u.str2hexstring(message)
+
+    return {
+      publicKey: account.publicKey,
+      data: wallet.sign(messageHex, account.privateKey, salt),
+      salt,
+      messageHex
+    }
+  }
+
   verifyMessage = (verifyArgs: SignedMessage): boolean => {
     return wallet.verify(verifyArgs.messageHex, verifyArgs.data, verifyArgs.publicKey)
   }
 
+  getGasBalance = async (account: Account): Promise<number> => {
+    const rpcClient = new rpc.RPCClient(this.rpcAddress)
+    const response = await rpcClient.invokeFunction('0xd2a4cff31913016155e38e474a2c06d08be276cf',
+      "balanceOf",
+      [sc.ContractParam.hash160(account.address)]
+    );
+    return parseInt(response.stack[0].value as string) / Math.pow(10, 8)
+  }
+
   private static convertParams(args: any[]): ContractParam[] {
-    return args.map(a => (
-      a.value === undefined ? a :
-        a.type === 'Address'
-          ? sc.ContractParam.hash160(a.value)
-          : a.type === 'ScriptHash'
-          ? sc.ContractParam.hash160(Neon.u.HexString.fromHex(a.value))
-          : a.type === 'Array'
-            ? sc.ContractParam.array(...N3Helper.convertParams(a.value))
-            : a
-    ))
+    return args.map(a => {
+      if (a.value === undefined) return a
+
+      switch (a.type as ArgType) {
+        case 'Any': return sc.ContractParam.any(a.value)
+        case 'String': return sc.ContractParam.string(a.value)
+        case 'Boolean': return sc.ContractParam.boolean(a.value)
+        case 'PublicKey': return sc.ContractParam.publicKey(a.value)
+        case 'Address':
+        case 'Hash160':
+          return sc.ContractParam.hash160(a.value)
+        case 'Hash256': return sc.ContractParam.hash256(a.value)
+        case 'Integer': return sc.ContractParam.integer(a.value)
+        case 'ScriptHash': return sc.ContractParam.hash160(Neon.u.HexString.fromHex(a.value))
+        case 'Array': return sc.ContractParam.array(...N3Helper.convertParams(a.value))
+        case 'ByteArray': return sc.ContractParam.byteArray(a.value)
+        default: return a
+      }
+    })
   }
 
   private static buildSigner(account: Account, signerEntry?: Signer) {
     const signer = new tx.Signer({
-      account: account.scriptHash
+      account: signerEntry?.account ?? account.scriptHash
     })
 
     signer.scopes = signerEntry?.scopes ?? WitnessScope.CalledByEntry

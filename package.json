@@ -4,12 +4,12 @@
   "private": true,
   "author": "COZ, Inc.",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "cross-env GENERATE_SOURCEMAP=false react-app-rewired start",
+    "build": "cross-env GENERATE_SOURCEMAP=false react-app-rewired build",
     "deploy": "aws s3 sync ./build s3://web-wallet-coz --acl public-read",
     "deploy:develop": "aws s3 sync ./build s3://web-wallet-coz-dev --acl public-read",
     "lint": "eslint ./src/**/*.ts*",
-    "test": "react-scripts test",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
   "repository": {
@@ -36,17 +36,16 @@
     "@types/react-dom": "^16.9.8",
     "@types/react-qr-reader": "^2.1.3",
     "@types/styled-components": "^5.1.2",
-    "@walletconnect/client": "2.0.0-beta.17",
-    "@walletconnect/types": "2.0.0-beta.17",
-    "@walletconnect/utils": "2.0.0-beta.17",
+    "@walletconnect/sign-client": "2.0.0-rc.3",
     "axios": "^0.21.1",
     "framer-motion": "^4.1.16",
     "keyvaluestorage": "^0.7.1",
     "prop-types": "^15.7.2",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.1",
+    "randombytes": "^2.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-qr-reader": "^2.2.1",
-    "react-scripts": "^4.0.3",
+    "react-scripts": "^5.0.1",
     "styled-components": "^5.2.0",
     "typescript": "^4.2.3"
   },
@@ -69,12 +68,14 @@
     ]
   },
   "devDependencies": {
-    "@types/react-router-dom": "^5.1.7",
+    "@types/react-router-dom": "^5.3.3",
     "@typescript-eslint/eslint-plugin": "^4.27.0",
     "@typescript-eslint/parser": "^4.27.0",
+    "cross-env": "^7.0.3",
     "eslint": "^7.28.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^3.4.0",
-    "prettier": "^2.3.1"
+    "prettier": "^2.3.1",
+    "react-app-rewired": "^2.2.1"
   }
 }

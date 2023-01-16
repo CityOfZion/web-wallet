@@ -1,5 +1,4 @@
 import * as React from "react";
-import {isJsonRpcRequest} from "@json-rpc-tools/utils";
 import {motion, MotionProps} from "framer-motion";
 
 import {
@@ -14,10 +13,9 @@ import {
   Text,
   Link,
 } from "@chakra-ui/react";
-import {useWalletConnect} from "../context/WalletConnectContext";
+import {SessionRequest, useWalletConnect} from "../context/WalletConnectContext";
 import Peer from "../components/Peer";
 import {DeleteIcon} from "@chakra-ui/icons";
-import {SessionTypes} from "@walletconnect/types";
 
 export type MotionBoxProps = Omit<ChakraProps,
   keyof MotionProps> &
@@ -33,7 +31,7 @@ export const MotionLink = motion(
 
 export default function DefaultCard(props: DividerProps & {
   openConnectingDapp: () => any,
-  openRequest: (request: SessionTypes.RequestEvent) => any
+  openRequest: (request: SessionRequest) => any
 }): any {
   const walletConnectCtx = useWalletConnect()
 
@@ -52,8 +50,7 @@ export default function DefaultCard(props: DividerProps & {
             <Peer key={session.topic} metadata={session.peer.metadata} flex={1}/>
             <Link onClick={() => walletConnectCtx.disconnect(session.topic)}><DeleteIcon color="#990000"/></Link>
           </Flex>
-          {walletConnectCtx.requests.map(requestEvent =>
-            isJsonRpcRequest(requestEvent.request) && requestEvent.topic === session.topic && (
+          {walletConnectCtx.requests.map(requestEvent => requestEvent.topic === session.topic && (
               <MotionLink
                 key={`r${requestEvent.topic}`}
                 bg="black" px="0.8rem" py="0.4rem" borderRadius="0.5rem" borderColor="#00000033" borderWidth="0.3rem"
@@ -64,7 +61,7 @@ export default function DefaultCard(props: DividerProps & {
                 transition={{repeat: Infinity, repeatType: "loop",}}
                 onClick={() => openRequest(requestEvent)}
               >
-                <Text as="span" fontWeight="bold">Pending Request:</Text> {requestEvent.request.method}
+                <Text as="span" fontWeight="bold">Pending Request:</Text> {requestEvent.params.request.method}
               </MotionLink>
             )
           )}
