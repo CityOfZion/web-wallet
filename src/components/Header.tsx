@@ -1,11 +1,11 @@
 import * as React from "react";
-import {Flex, Image, Link, Text} from "@chakra-ui/react";
+import { Flex, Image, Link, Text } from "@chakra-ui/react";
 import LogoutIcon from "./icon/LogoutIcon";
-import {FileHelper} from "../helpers/FileHelper";
-import {useAccountContext} from "../context/AccountContext";
-import {N3Helper} from '../helpers/N3Helper'
-import {DEFAULT_NETWORKS} from '../constants'
-import {useCallback, useEffect, useState} from 'react'
+import { FileHelper } from "../helpers/FileHelper";
+import { useAccountContext } from "../context/AccountContext";
+import { DEFAULT_NETWORKS } from '../constants'
+import { useCallback, useEffect, useState } from 'react'
+import { NeonInvoker } from "@cityofzion/neon-invoker";
 
 const chainMeta = {
     name: 'Neo3',
@@ -38,8 +38,21 @@ export default function Header(): any {
         if (!accountCtx.account) {
             return undefined
         }
-        const n3Helper = await N3Helper.init(DEFAULT_NETWORKS[accountCtx.networkType].url || accountCtx.privateRpcAddress)
-        const gas = await n3Helper.getGasBalance(accountCtx.account)
+
+        const invoker = await NeonInvoker.init(DEFAULT_NETWORKS[accountCtx.networkType].url || accountCtx.privateRpcAddress)
+
+        const response = await invoker.testInvoke({
+            invocations: [
+                {
+                    operation: "balanceOf",
+                    scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+                    args: [{ value: accountCtx.account.address, type: "Hash160" }]
+                }
+            ]
+        });
+
+        const gas = parseInt(response.stack[0].value as string) / Math.pow(10, 8)
+
         setBalance(gas)
     }, [accountCtx.account, accountCtx.networkType, accountCtx.privateRpcAddress])
 
@@ -61,7 +74,7 @@ export default function Header(): any {
                             align="center"
                         >
                             <Image src={chainMeta.logo} alt={chainMeta.name} title={chainMeta.name} w="1.6rem"
-                                   mr="0.5rem"/>
+                                mr="0.5rem" />
                             <Flex direction="column">
                                 <Text fontSize="0.875rem">{ellipseAddress(accountCtx.account.address, 8)}</Text>
                                 <Text fontSize="0.6rem">GAS: {balance}</Text>
@@ -70,7 +83,7 @@ export default function Header(): any {
                                 </Link>
                             </Flex>
                             <Link ml="0.6rem" onClick={logout}>
-                                <LogoutIcon boxSize="1.4rem" color="#888888"/>
+                                <LogoutIcon boxSize="1.4rem" color="#888888" />
                             </Link>
                         </Flex>}
                 </Flex>

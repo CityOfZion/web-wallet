@@ -9,7 +9,7 @@ import {useAccountContext} from "./context/AccountContext";
 import AccountEntry from "./components/AccountEntry";
 import { useCallback, useEffect, useState } from 'react'
 import ConnectDapp from "./components/ConnectDapp";
-import {N3Helper} from "./helpers/N3Helper";
+import {NeonWcAdapter} from "./helpers/NeonWcAdapter";
 import {DEFAULT_AUTOACCEPT_METHODS, DEFAULT_NETWORKS} from "./constants";
 
 export default function App(): any {
@@ -23,7 +23,9 @@ export default function App(): any {
   }, [walletConnectCtx.sessions])
 
   const requestListener = useCallback(async (acc, chain, req: SessionRequest) => {
-    return await (await N3Helper.init(DEFAULT_NETWORKS[chain].url || accountCtx.privateRpcAddress)).rpcCall(accountCtx.account, req)
+    const adapter = await NeonWcAdapter.init(DEFAULT_NETWORKS[chain].url || accountCtx.privateRpcAddress)
+    
+    return await adapter.rpcCall(accountCtx.account, req)
   }, [accountCtx.account, accountCtx.privateRpcAddress])
 
   useEffect(() => {
