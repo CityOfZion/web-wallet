@@ -1,9 +1,8 @@
 import * as React from "react";
 import {Box, Button, DividerProps, Flex, Image, Input, Select, Spacer, Spinner, Text, useToast} from "@chakra-ui/react";
 import {FileHelper} from "../helpers/FileHelper";
-import {wallet} from "@cityofzion/neon-js";
 import {useCallback, useEffect, useState} from "react";
-import {Account, AccountJSON} from "@cityofzion/neon-core/lib/wallet/Account";
+import {wallet} from "@cityofzion/neon-core";
 import {useAccountContext} from "../context/AccountContext";
 import {DEFAULT_NETWORKS} from "../constants";
 
@@ -14,14 +13,15 @@ export default function AccountEntry(props: DividerProps): any {
     const [creatingNew, setCreatingNew] = useState(false)
     const [loading, setLoading] = useState(false)
 
-    const setAccount = (acc: Account) => {
+    const setAccount = (acc: wallet.Account) => {
         accountCtx.setAccount(acc);
     }
 
     const loadAccountFromStorage = useCallback(async () => {
         if (!accountCtx.account) {
             const str = localStorage.getItem("account")
-            const json = str ? JSON.parse(str) as Partial<AccountJSON> : null
+            const json = str ? JSON.parse(str) as Partial<wallet.AccountJSON> : null
+
             if (json) {
                 const account = new wallet.Account(json)
                 setAccount(account)
@@ -86,7 +86,7 @@ export default function AccountEntry(props: DividerProps): any {
     return (
         <Flex direction="column" align="center" {...props}>
             <Spacer/>
-            {loading ? <Spinner alignSelf="center" />
+            {loading ? <><Spinner alignSelf="center" />Decrypting 😒</>
             : !choseNetwork ? <>
                 <Text fontSize="0.875rem" color="#888888">Choose your network</Text>
                 <Text fontSize="0.75rem" mt="1.5rem" w="20rem">Network Type</Text>

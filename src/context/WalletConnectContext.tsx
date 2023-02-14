@@ -302,12 +302,13 @@ export const WalletConnectContextProvider: React.FC<{
       })
       await removeFromPending(requestEvent)
       return response
-    } catch (error) {
+    } catch (error: any) {
+      console.log(error.message)
       await signClient.respond({
         topic: requestEvent.topic,
         response: formatJsonRpcError(
           requestEvent.id,
-          'Failed or Rejected Request'
+            `Failed or Rejected Request. ${error.message}`
         ),
       })
       await removeFromPending(requestEvent)

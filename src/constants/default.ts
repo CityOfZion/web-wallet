@@ -12,7 +12,8 @@ export const DEFAULT_METHODS = [
   "getapplicationlog",
   "getrawmempool",
   "getcontractstate",
-  "findstates"
+  "findstates",
+  "traverseIterator",
 ];
 export const DEFAULT_AUTOACCEPT_METHODS = [
   "testInvoke",
@@ -20,7 +21,8 @@ export const DEFAULT_AUTOACCEPT_METHODS = [
   "getapplicationlog",
   "getrawmempool",
   "getcontractstate",
-  "findstates"
+  "findstates",
+  "traverseIterator",
 ];
 
 export const DEFAULT_LOGGER = "error";
