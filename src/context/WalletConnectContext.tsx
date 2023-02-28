@@ -147,6 +147,7 @@ export const WalletConnectContextProvider: React.FC<{
       throw new Error('Client is not initialized')
     }
 
+    // @ts-ignore
     signClient.events.removeAllListeners()
 
     signClient.on("session_proposal", (proposal: SessionProposal) => {

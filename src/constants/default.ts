@@ -9,19 +9,11 @@ export const DEFAULT_METHODS = [
   "testInvoke",
   "signMessage",
   "verifyMessage",
-  "getapplicationlog",
-  "getrawmempool",
-  "getcontractstate",
-  "findstates",
   "traverseIterator",
 ];
 export const DEFAULT_AUTOACCEPT_METHODS = [
   "testInvoke",
   "verifyMessage",
-  "getapplicationlog",
-  "getrawmempool",
-  "getcontractstate",
-  "findstates",
   "traverseIterator",
 ];
 
