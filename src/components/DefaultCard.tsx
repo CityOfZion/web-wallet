@@ -13,9 +13,10 @@ import {
   Text,
   Link,
 } from "@chakra-ui/react";
-import {SessionRequest, useWalletConnect} from "../context/WalletConnectContext";
+import {useWalletConnectWallet} from "@cityofzion/wallet-connect-sdk-wallet-react";
 import Peer from "../components/Peer";
 import {DeleteIcon} from "@chakra-ui/icons";
+import {TSessionAndTRequest} from "../types";
 
 export type MotionBoxProps = Omit<ChakraProps,
   keyof MotionProps> &
@@ -31,9 +32,9 @@ export const MotionLink = motion(
 
 export default function DefaultCard(props: DividerProps & {
   openConnectingDapp: () => any,
-  openRequest: (request: SessionRequest) => any
+  openRequest: (request: TSessionAndTRequest) => any
 }): any {
-  const walletConnectCtx = useWalletConnect()
+  const walletConnectCtx = useWalletConnectWallet()
 
   const {openConnectingDapp, openRequest, ...dividerProps} = props
 
@@ -48,7 +49,7 @@ export default function DefaultCard(props: DividerProps & {
         <Flex key={`s${session.topic}`} direction="column" bg="#252b36" w="23rem" boxShadow="lg" p="0.5rem" my="0.5rem">
           <Flex>
             <Peer key={session.topic} metadata={session.peer.metadata} flex={1}/>
-            <Link onClick={() => walletConnectCtx.disconnect(session.topic)}><DeleteIcon color="#990000"/></Link>
+            <Link onClick={() => walletConnectCtx.disconnect(session)}><DeleteIcon color="#990000"/></Link>
           </Flex>
           {walletConnectCtx.requests.map(requestEvent => requestEvent.topic === session.topic && (
               <MotionLink
@@ -59,7 +60,7 @@ export default function DefaultCard(props: DividerProps & {
                 mt="1rem"
                 animate={{scale: [1, 1.07, 1]}}
                 transition={{repeat: Infinity, repeatType: "loop",}}
-                onClick={() => openRequest(requestEvent)}
+                onClick={() => openRequest({request: requestEvent, session})}
               >
                 <Text as="span" fontWeight="bold">Pending Request:</Text> {requestEvent.params.request.method}
               </MotionLink>

@@ -96,7 +96,7 @@ export default function AccountEntry(props: DividerProps): any {
                         mt="0.5rem" w="20rem" color="#999999">
                     {Object.keys(DEFAULT_NETWORKS).map((key) => (<option value={key} key={key}>{DEFAULT_NETWORKS[key].name}</option>))}
                 </Select>
-                {accountCtx.networkType === 'neo3:private' && <>
+                {accountCtx.networkType === 'private' && <>
                     <Text fontSize="0.75rem" mt="1.5rem" w="20rem">RPC Address</Text>
                     <Input onChange={(e: any) => accountCtx.setPrivateRpcAddress(e.target.value)}
                            value={accountCtx.privateRpcAddress}

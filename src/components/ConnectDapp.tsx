@@ -1,11 +1,11 @@
 import * as React from "react";
 import {Box, Button, DividerProps, Flex, Input, Spacer, Spinner, Text, useToast} from "@chakra-ui/react";
-import {useWalletConnect} from "../context/WalletConnectContext";
 import {useCallback, useEffect, useState} from "react";
 import Scanner, {ScannerValidation} from "./Scanner";
+import {useWalletConnectWallet} from "@cityofzion/wallet-connect-sdk-wallet-react";
 
 export default function ConnectDapp(props: DividerProps): any {
-  const walletConnectCtx = useWalletConnect()
+  const walletConnectCtx = useWalletConnectWallet()
   const toast = useToast()
   const [scanner, setScanner] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
@@ -18,7 +18,7 @@ export default function ConnectDapp(props: DividerProps): any {
   const handleInput = async (e: any) => {
     setLoading(true)
     try {
-      await walletConnectCtx.onURI(e.target.value)
+      await walletConnectCtx.connect(e.target.value)
     } catch (e) {
       setLoading(false)
       toast({
@@ -42,7 +42,7 @@ export default function ConnectDapp(props: DividerProps): any {
   };
 
   const onScannerScan = async (data: any) => {
-    await walletConnectCtx.onURI(data);
+    await walletConnectCtx.connect(data);
     setScanner(false)
   };
 
@@ -63,7 +63,7 @@ export default function ConnectDapp(props: DividerProps): any {
 
   useEffect(() => {
     setLoading(false)
-  }, [walletConnectCtx.sessionProposals.length])
+  }, [walletConnectCtx.proposals.length])
 
   const handleUnhandledRejection = useCallback((event: PromiseRejectionEvent) => {
     if (event.reason.message && event.reason.message.includes('No matching pairing')) {

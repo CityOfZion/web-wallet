@@ -2,24 +2,20 @@ import * as React from "react";
 
 import Peer from "../components/Peer";
 import {Button, Spinner, DividerProps, Flex, Image, Spacer, Text, Box} from "@chakra-ui/react";
-import {PeerOfRequest, SessionRequest, useWalletConnect} from "../context/WalletConnectContext";
-import {useEffect, useState} from "react";
+import {useState} from "react";
+import {useWalletConnectWallet} from "@cityofzion/wallet-connect-sdk-wallet-react";
+import {TSessionAndTRequest} from "../types";
 
-export default function RequestCard(props: DividerProps & {requestEvent: SessionRequest, closeRequest: () => void}): any {
-  const walletConnectCtx = useWalletConnect()
-  const [peer, setPeer] = useState<PeerOfRequest | undefined>(undefined)
+export default function RequestCard(props: DividerProps & {sessionAndRequest: TSessionAndTRequest, closeRequest: () => void}): any {
+  const walletConnectCtx = useWalletConnectWallet()
   const [sendingResponse, setSendingResponse] = useState(false)
 
-  const request = props.requestEvent.params.request
-
-  useEffect(() => {
-    walletConnectCtx.getPeerOfRequest(props.requestEvent).then(setPeer)
-  }, [props.requestEvent, walletConnectCtx])
+  const request = props.sessionAndRequest.request.params.request
 
   const approve = async () => {
     setSendingResponse(true)
     try {
-      await walletConnectCtx.approveRequest(props.requestEvent)
+      await walletConnectCtx.approveRequest(props.sessionAndRequest.request)
     } finally {
       setSendingResponse(false)
       props.closeRequest()
@@ -28,7 +24,7 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
 
   const reject = async () => {
     setSendingResponse(true)
-    await walletConnectCtx.rejectRequest(props.requestEvent)
+    await walletConnectCtx.rejectRequest(props.sessionAndRequest.request)
     setSendingResponse(false)
     props.closeRequest()
   }
@@ -42,7 +38,7 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
     <Flex direction="column" align="center" {...props}>
       <Spacer/>
       <Flex direction="column" bg="#252b36" w="23rem" boxShadow="dark-lg" p="0.5rem">
-        {peer && <Peer metadata={peer.metadata} />}
+        {props.sessionAndRequest.session.peer && <Peer metadata={props.sessionAndRequest.session.peer.metadata} />}
         <Flex direction="column" bg="#00000022" boxShadow="inset 0 2px 3px 0 #00000033" mt="0.9rem" p="0.7rem"
               overflow="hidden">
           <Text fontSize="0.875rem" color="#888888" fontWeight="bold">Chains</Text>
@@ -53,8 +49,8 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
           <Text fontSize="0.875rem" color="#888888" fontWeight="bold" mt="0.875rem">Method</Text>
           <Text fontSize="0.875rem" mt="0.5rem">{request.method}</Text>
           <Text fontSize="0.875rem" color="#888888" fontWeight="bold" mt="0.875rem">Arguments</Text>
-          {items?.map((p: any, i: number) => (<>
-              <Flex key={i} mt="0.5rem">
+          {items?.map((p: any, i: number) => (<Box key={i}>
+              <Flex mt="0.5rem">
                 <Box h="1.75rem" pt="0.08rem" px={"0.6rem"} textAlign="center" bg="#373d4a" borderRadius="0.875rem">
                   {i.toString(10)}
                 </Box>
@@ -76,7 +72,7 @@ export default function RequestCard(props: DividerProps & {requestEvent: Session
                   ))}
                 </Flex>
               )}
-            </>)
+            </Box>)
           )}
         </Flex>
         {sendingResponse ? <Spinner alignSelf="center" /> : (
