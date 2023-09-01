@@ -3,9 +3,8 @@ import { Flex, Image, Link, Text } from "@chakra-ui/react";
 import LogoutIcon from "./icon/LogoutIcon";
 import { FileHelper } from "../helpers/FileHelper";
 import { useAccountContext } from "../context/AccountContext";
-import { DEFAULT_NETWORKS } from '../constants'
 import { useCallback, useEffect, useState } from 'react'
-import { NeonInvoker } from "@cityofzion/neon-invoker";
+import {NeonInvoker, NeonParser} from "@cityofzion/neon-dappkit";
 
 const chainMeta = {
     name: 'Neo3',
@@ -39,7 +38,9 @@ export default function Header(): any {
             return undefined
         }
 
-        const invoker = await NeonInvoker.init(DEFAULT_NETWORKS[accountCtx.networkType].url || accountCtx.privateRpcAddress)
+        const invoker = await NeonInvoker.init({
+            rpcAddress: accountCtx.rpcAddress,
+        })
 
         const response = await invoker.testInvoke({
             invocations: [
@@ -51,7 +52,7 @@ export default function Header(): any {
             ]
         });
 
-        const gas = parseInt(response.stack[0].value as string) / Math.pow(10, 8)
+        const gas = NeonParser.parseRpcResponse(response.stack[0]) / Math.pow(10, 8)
 
         setBalance(gas)
     }, [accountCtx.account, accountCtx.networkType, accountCtx.privateRpcAddress])
